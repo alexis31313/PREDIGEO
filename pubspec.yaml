@@ -28,6 +28,9 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^4.0.0
   mocktail: ^1.0.4
+  # Permite ejecutar las pruebas de la capa de datos sobre SQLite en el
+  # escritorio (sin emulador Android ni conexión a internet).
+  sqflite_common_ffi: ^2.3.3
 
 flutter:
   uses-material-design: true

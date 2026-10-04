@@ -1,13 +1,24 @@
 import 'dart:math' as math;
-import '../entities/coordinate.dart';
 
-/// Caso de uso que evalúa la precisión de coordenadas medidas contra coordenadas de referencia.
+import '../entities/geo_point.dart';
+
+/// Caso de uso que evalúa la precisión de los puntos medidos comparándolos con
+/// puntos de referencia conocidos del terreno.
+///
+/// Calcula las tres métricas usadas en la evaluación de PrediGeo:
+/// - RMSE (error cuadrático medio de las distancias de error);
+/// - error absoluto medio (en metros);
+/// - error porcentual medio, relativo a la distancia de la referencia al ecuador.
 class EvaluateAccuracyUsecase {
-  /// Compara coordenadas medidas con coordenadas de referencia y calcula
-  /// métricas de error: RMSE, error absoluto y error porcentual.
+  static const double _earthRadius = 6371000.0;
+
+  /// Compara las listas de puntos medidos y de referencia.
+  ///
+  /// Devuelve un mapa con las claves `rmse`, `absoluteError` y `percentError`.
+  /// Si alguna de las listas está vacía devuelve todas las métricas en cero.
   Map<String, double> call(
-    List<Coordinate> measured,
-    List<Coordinate> reference,
+    List<GeoPoint> measured,
+    List<GeoPoint> reference,
   ) {
     if (measured.isEmpty || reference.isEmpty) {
       return {
@@ -17,13 +28,13 @@ class EvaluateAccuracyUsecase {
       };
     }
 
-    final int count = math.min(measured.length, reference.length);
-    double sumSquaredError = 0.0;
-    double sumAbsoluteError = 0.0;
-    double sumReferenceDistance = 0.0;
+    final count = math.min(measured.length, reference.length);
+    var sumSquaredError = 0.0;
+    var sumAbsoluteError = 0.0;
+    var sumReferenceDistance = 0.0;
 
-    for (int i = 0; i < count; i++) {
-      final double error = _haversineDistance(
+    for (var i = 0; i < count; i++) {
+      final error = _haversineDistance(
         measured[i].latitude,
         measured[i].longitude,
         reference[i].latitude,
@@ -40,9 +51,9 @@ class EvaluateAccuracyUsecase {
       );
     }
 
-    final double rmse = math.sqrt(sumSquaredError / count);
-    final double absoluteError = sumAbsoluteError / count;
-    final double percentError = sumReferenceDistance > 0
+    final rmse = math.sqrt(sumSquaredError / count);
+    final absoluteError = sumAbsoluteError / count;
+    final percentError = sumReferenceDistance > 0
         ? (absoluteError / (sumReferenceDistance / count)) * 100.0
         : 0.0;
 
@@ -59,23 +70,19 @@ class EvaluateAccuracyUsecase {
     double lat2,
     double lon2,
   ) {
-    const double earthRadius = 6371000.0;
+    final dLat = _toRadians(lat2 - lat1);
+    final dLon = _toRadians(lon2 - lon1);
 
-    final double dLat = _toRadians(lat2 - lat1);
-    final double dLon = _toRadians(lon2 - lon1);
-
-    final double a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
         math.cos(_toRadians(lat1)) *
             math.cos(_toRadians(lat2)) *
             math.sin(dLon / 2) *
             math.sin(dLon / 2);
 
-    final double c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+    final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
 
-    return earthRadius * c;
+    return _earthRadius * c;
   }
 
-  double _toRadians(double degrees) {
-    return degrees * math.pi / 180.0;
-  }
+  double _toRadians(double degrees) => degrees * math.pi / 180.0;
 }

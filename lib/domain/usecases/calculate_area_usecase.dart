@@ -1,38 +1,53 @@
 import 'dart:math' as math;
-import '../entities/coordinate.dart';
 
-/// Caso de uso que calcula el área de un polígono definido por coordenadas GPS.
+import '../entities/geo_point.dart';
+
+/// Caso de uso que calcula el área de un polígono definido por puntos GNSS.
+///
+/// Utiliza la fórmula de Gauss (shoelace) proyectando las coordenadas geodésicas
+/// a un plano local en metros, con el primer vértice como origen. La proyección
+/// es válida para los polígonos de terreno (decenas de metros a pocos
+/// kilómetros), donde la curvatura terrestre no introduce errores apreciables.
 class CalculateAreaUsecase {
-  /// Calcula el área en metros cuadrados usando la fórmula de Gauss (shoelace).
-  /// Requiere al menos 3 coordenadas para formar un polígono válido.
-  Future<double> call(List<Coordinate> coordinates) async {
-    if (coordinates.length < 3) {
-      throw ArgumentError('Se requieren al menos 3 coordenadas para calcular el área.');
+  static const double _metersPerDegree = 111320.0;
+
+  /// Calcula el área en metros cuadrados.
+  /// Lanza [ArgumentError] si se requieren menos de tres puntos.
+  Future<double> call(List<GeoPoint> points) async {
+    if (points.length < 3) {
+      throw ArgumentError(
+        'Se requieren al menos 3 puntos para calcular el área.',
+      );
     }
 
-    double area = 0.0;
-    final int n = coordinates.length;
+    final origin = points.first;
+    var twiceArea = 0.0;
 
-    for (int i = 0; i < n; i++) {
-      final Coordinate current = coordinates[i];
-      final Coordinate next = coordinates[(i + 1) % n];
+    for (var i = 0; i < points.length; i++) {
+      final current = points[i];
+      final next = points[(i + 1) % points.length];
 
-      final double x1 = _longitudeToMeters(current.longitude, current.latitude);
-      final double y1 = _latitudeToMeters(current.latitude);
-      final double x2 = _longitudeToMeters(next.longitude, next.latitude);
-      final double y2 = _latitudeToMeters(next.latitude);
+      final x1 = _eastMeters(origin, current);
+      final y1 = _northMeters(origin, current);
+      final x2 = _eastMeters(origin, next);
+      final y2 = _northMeters(origin, next);
 
-      area += (x1 * y2) - (x2 * y1);
+      twiceArea += (x1 * y2) - (x2 * y1);
     }
 
-    return (area.abs()) / 2.0;
+    return twiceArea.abs() / 2.0;
   }
 
-  double _latitudeToMeters(double latitude) {
-    return latitude * 111320.0;
+  /// Desplazamiento en metros hacia el Este respecto al origen local.
+  double _eastMeters(GeoPoint origin, GeoPoint point) {
+    final scale = _metersPerDegree * math.cos(_toRadians(point.latitude));
+    return scale * (point.longitude - origin.longitude);
   }
 
-  double _longitudeToMeters(double longitude, double latitude) {
-    return longitude * 111320.0 * math.cos(latitude * math.pi / 180.0);
+  /// Desplazamiento en metros hacia el Norte respecto al origen local.
+  double _northMeters(GeoPoint origin, GeoPoint point) {
+    return _metersPerDegree * (point.latitude - origin.latitude);
   }
+
+  double _toRadians(double degrees) => degrees * math.pi / 180.0;
 }

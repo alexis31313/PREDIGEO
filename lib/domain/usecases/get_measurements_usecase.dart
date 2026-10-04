@@ -1,14 +1,15 @@
 import '../entities/measurement.dart';
 import '../repositories/measurement_repository.dart';
 
-/// Caso de uso que obtiene la lista de todas las mediciones almacenadas.
+/// Caso de uso que obtiene el historial de mediciones almacenadas
+/// localmente, de más reciente a más antiguo.
 class GetMeasurementsUsecase {
   final MeasurementRepository _repository;
 
-  GetMeasurementsUsecase(this._repository);
+  const GetMeasurementsUsecase(this._repository);
 
-  /// Retorna una lista con todas las mediciones registradas.
-  Future<List<Measurement>> call() async {
-    return await _repository.getMeasurements();
+  /// Retorna la lista de mediciones (cabecera, sin puntos) del historial.
+  Future<List<Measurement>> call() {
+    return _repository.getAll();
   }
 }
