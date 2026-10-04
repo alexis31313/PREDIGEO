@@ -67,6 +67,13 @@ class HomeScreen extends ConsumerWidget {
               subtitle: 'Evaluar resultados y predicciones',
               onTap: () => context.push('/evaluation'),
             ),
+            const SizedBox(height: 12),
+            _MenuCard(
+              icon: Icons.satellite_alt,
+              title: 'GPS Debug',
+              subtitle: 'Ver señal GPS en tiempo real',
+              onTap: () => context.push('/gps-debug'),
+            ),
           ],
         ),
       ),

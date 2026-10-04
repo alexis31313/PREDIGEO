@@ -8,6 +8,7 @@ import '../screens/home_screen.dart';
 import '../screens/measure_screen.dart';
 import '../screens/history_screen.dart';
 import '../screens/evaluation_screen.dart';
+import '../screens/gps_debug_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/',
@@ -34,6 +35,12 @@ final appRouter = GoRouter(
       path: '/evaluation',
       builder: (BuildContext context, GoRouterState state) {
         return const EvaluationScreen();
+      },
+    ),
+    GoRoute(
+      path: '/gps-debug',
+      builder: (BuildContext context, GoRouterState state) {
+        return const GpsDebugScreen();
       },
     ),
   ],
