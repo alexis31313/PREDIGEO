@@ -25,6 +25,10 @@ La capa de datos es responsable de:
 - `DatabaseHelper`: Gestor de la base de datos SQLite
 - `CsvExporter`: Exportador de datos en formato CSV
 
+Detalle del esquema local (tablas `measurements`, `measurement_points`,
+`field_evaluations`, índices, claves foráneas y versionado) en
+[`modelo_er.md`](modelo_er.md).
+
 ### 2.2 Capa de Dominio (Domain)
 
 La capa de dominio contiene la lógica de negocio de la aplicación:

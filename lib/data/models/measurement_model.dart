@@ -1,172 +1,184 @@
-/// Modelo de datos para mediciones geográficas.
-/// Representa una medición completa con sus datos calculados y metadatos.
+import '../../core/constants/app_constants.dart';
+import '../../domain/entities/field_evaluation.dart';
+import '../../domain/entities/geo_point.dart';
+import '../../domain/entities/measurement.dart';
+import '../../domain/entities/measurement_enums.dart';
+import 'sqlite_values.dart';
+
+/// Modelo de persistencia de una medición (`measurements`).
+///
+/// El mapeo de la cabecera es 1:1 con la tabla; los puntos y las evaluaciones
+/// viven en tablas hijas y se convierten por separado mediante [toEntity].
 class MeasurementModel {
   final int? id;
   final String name;
-  final double area;
-  final double perimeter;
-  final double distance;
-  final int coordinateCount;
-  final String measurementType;
-  final DateTime createdAt;
+  final MeasurementType type;
+  final double? areaM2;
+  final double? perimeterM;
+  final double? distanceM;
+  final MeasurementMode mode;
+  final MeasurementCategory? category;
   final String? notes;
+  final double? avgAccuracyM;
+  final DateTime createdAt;
 
   const MeasurementModel({
     this.id,
     required this.name,
-    required this.area,
-    required this.perimeter,
-    required this.distance,
-    required this.coordinateCount,
-    required this.measurementType,
-    required this.createdAt,
+    required this.type,
+    this.areaM2,
+    this.perimeterM,
+    this.distanceM,
+    required this.mode,
+    this.category,
     this.notes,
+    this.avgAccuracyM,
+    required this.createdAt,
   });
 
-  factory MeasurementModel.fromMap(Map<String, dynamic> map) {
+  /// Construye el modelo a partir de una fila de `measurements`.
+  ///
+  /// Lanza [ArgumentError] si `type` o `mode` no corresponden a valores válidos
+  /// de sus enumeraciones (dato corrupto o esquema desactualizado).
+  factory MeasurementModel.fromMap(Map<String, Object?> map) {
+    final rawType =
+        SqliteValues.toStringOrNull(map[AppConstants.columnType]);
+    final type = MeasurementType.fromValue(rawType);
+    if (type == null) {
+      throw ArgumentError(
+        'Valor "$rawType" no válido para la columna '
+        '"${AppConstants.columnType}" de ${AppConstants.tableMeasurements}.',
+      );
+    }
+
+    final rawMode = SqliteValues.toStringOrNull(map[AppConstants.columnMode]);
+    final mode = MeasurementMode.fromValue(rawMode);
+    if (mode == null) {
+      throw ArgumentError(
+        'Valor "$rawMode" no válido para la columna '
+        '"${AppConstants.columnMode}" de ${AppConstants.tableMeasurements}.',
+      );
+    }
+
     return MeasurementModel(
-      id: map['id'] as int?,
-      name: map['name'] as String,
-      area: (map['area'] as num).toDouble(),
-      perimeter: (map['perimeter'] as num).toDouble(),
-      distance: (map['distance'] as num).toDouble(),
-      coordinateCount: map['coordinate_count'] as int,
-      measurementType: map['measurement_type'] as String,
-      createdAt: DateTime.fromMillisecondsSinceEpoch(map['created_at'] as int),
-      notes: map['notes'] as String?,
+      id: SqliteValues.toInt(map[AppConstants.columnId]),
+      name: SqliteValues.toStringOrNull(map[AppConstants.columnName]) ?? '',
+      type: type,
+      areaM2: SqliteValues.toDouble(map[AppConstants.columnAreaM2]),
+      perimeterM: SqliteValues.toDouble(map[AppConstants.columnPerimeterM]),
+      distanceM: SqliteValues.toDouble(map[AppConstants.columnDistanceM]),
+      mode: mode,
+      category: MeasurementCategory.fromValue(
+        SqliteValues.toStringOrNull(map[AppConstants.columnCategory]),
+      ),
+      notes: SqliteValues.toStringOrNull(map[AppConstants.columnNotes]),
+      avgAccuracyM: SqliteValues.toDouble(map[AppConstants.columnAvgAccuracyM]),
+      createdAt: SqliteValues.dateTimeFromText(
+        map[AppConstants.columnCreatedAt],
+        column: AppConstants.columnCreatedAt,
+      ),
     );
   }
 
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'name': name,
-      'area': area,
-      'perimeter': perimeter,
-      'distance': distance,
-      'coordinate_count': coordinateCount,
-      'measurement_type': measurementType,
-      'created_at': createdAt.millisecondsSinceEpoch,
-      'notes': notes,
+  /// Construye el modelo desde la entidad de dominio.
+  factory MeasurementModel.fromEntity(Measurement measurement) {
+    return MeasurementModel(
+      id: measurement.id,
+      name: measurement.name,
+      type: measurement.type,
+      areaM2: measurement.areaM2,
+      perimeterM: measurement.perimeterM,
+      distanceM: measurement.distanceM,
+      mode: measurement.mode,
+      category: measurement.category,
+      notes: measurement.notes,
+      avgAccuracyM: measurement.avgAccuracyM,
+      createdAt: measurement.createdAt,
+    );
+  }
+
+  /// Convierte el modelo en la entidad de dominio.
+  ///
+  /// [points] y [evaluations] se entregan ya mapeados: son tablas hijas y no se
+  /// incluyen en la cabecera.
+  Measurement toEntity({
+    List<GeoPoint> points = const <GeoPoint>[],
+    List<FieldEvaluation> evaluations = const <FieldEvaluation>[],
+  }) {
+    return Measurement(
+      id: id,
+      name: name,
+      type: type,
+      areaM2: areaM2,
+      perimeterM: perimeterM,
+      distanceM: distanceM,
+      mode: mode,
+      category: category,
+      notes: notes,
+      avgAccuracyM: avgAccuracyM,
+      createdAt: createdAt,
+      points: points,
+      evaluations: evaluations,
+    );
+  }
+
+  /// Serializa el modelo a una fila de SQLite.
+  ///
+  /// [includeId] permite omitir la clave primaria (inserción con autogenerado).
+  Map<String, Object?> toMap({bool includeId = true}) {
+    return <String, Object?>{
+      if (includeId && id != null) AppConstants.columnId: id,
+      AppConstants.columnName: name,
+      AppConstants.columnType: type.value,
+      AppConstants.columnAreaM2: areaM2,
+      AppConstants.columnPerimeterM: perimeterM,
+      AppConstants.columnDistanceM: distanceM,
+      AppConstants.columnMode: mode.value,
+      AppConstants.columnCategory: category?.value,
+      AppConstants.columnNotes: notes,
+      AppConstants.columnAvgAccuracyM: avgAccuracyM,
+      AppConstants.columnCreatedAt: SqliteValues.dateTimeToText(createdAt),
     };
+  }
+
+  /// Convierte una lista de filas en una lista de entidades de dominio.
+  static List<Measurement> toEntities(List<Map<String, Object?>> rows) {
+    return rows
+        .map((row) => MeasurementModel.fromMap(row).toEntity())
+        .toList(growable: false);
   }
 
   MeasurementModel copyWith({
     int? id,
     String? name,
-    double? area,
-    double? perimeter,
-    double? distance,
-    int? coordinateCount,
-    String? measurementType,
-    DateTime? createdAt,
+    MeasurementType? type,
+    double? areaM2,
+    double? perimeterM,
+    double? distanceM,
+    MeasurementMode? mode,
+    MeasurementCategory? category,
     String? notes,
+    double? avgAccuracyM,
+    DateTime? createdAt,
   }) {
     return MeasurementModel(
       id: id ?? this.id,
       name: name ?? this.name,
-      area: area ?? this.area,
-      perimeter: perimeter ?? this.perimeter,
-      distance: distance ?? this.distance,
-      coordinateCount: coordinateCount ?? this.coordinateCount,
-      measurementType: measurementType ?? this.measurementType,
-      createdAt: createdAt ?? this.createdAt,
+      type: type ?? this.type,
+      areaM2: areaM2 ?? this.areaM2,
+      perimeterM: perimeterM ?? this.perimeterM,
+      distanceM: distanceM ?? this.distanceM,
+      mode: mode ?? this.mode,
+      category: category ?? this.category,
       notes: notes ?? this.notes,
+      avgAccuracyM: avgAccuracyM ?? this.avgAccuracyM,
+      createdAt: createdAt ?? this.createdAt,
     );
-  }
-
-  factory MeasurementModel.fromJson(String source) {
-    final map = Map<String, dynamic>.from(
-      Uri.splitQueryString(source).map(
-        (key, value) => MapEntry(key, value),
-      ),
-    );
-    return MeasurementModel(
-      id: int.tryParse(map['id'] ?? ''),
-      name: map['name']!,
-      area: double.parse(map['area']!),
-      perimeter: double.parse(map['perimeter']!),
-      distance: double.parse(map['distance']!),
-      coordinateCount: int.parse(map['coordinate_count']!),
-      measurementType: map['measurement_type']!,
-      createdAt: DateTime.parse(map['created_at']!),
-      notes: map['notes'],
-    );
-  }
-
-  String toJson() {
-    return Uri.encodeQueryComponent('id') +
-        '=' +
-        (id?.toString() ?? '') +
-        '&' +
-        Uri.encodeQueryComponent('name') +
-        '=' +
-        Uri.encodeComponent(name) +
-        '&' +
-        Uri.encodeQueryComponent('area') +
-        '=' +
-        area.toString() +
-        '&' +
-        Uri.encodeQueryComponent('perimeter') +
-        '=' +
-        perimeter.toString() +
-        '&' +
-        Uri.encodeQueryComponent('distance') +
-        '=' +
-        distance.toString() +
-        '&' +
-        Uri.encodeQueryComponent('coordinate_count') +
-        '=' +
-        coordinateCount.toString() +
-        '&' +
-        Uri.encodeQueryComponent('measurement_type') +
-        '=' +
-        Uri.encodeComponent(measurementType) +
-        '&' +
-        Uri.encodeQueryComponent('created_at') +
-        '=' +
-        createdAt.toIso8601String() +
-        '&' +
-        Uri.encodeQueryComponent('notes') +
-        '=' +
-        (notes != null ? Uri.encodeComponent(notes!) : '');
   }
 
   @override
-  String toString() {
-    return 'MeasurementModel(id: $id, name: $name, area: $area, '
-        'perimeter: $perimeter, distance: $distance, '
-        'coordinateCount: $coordinateCount, measurementType: $measurementType, '
-        'createdAt: $createdAt, notes: $notes)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    return other is MeasurementModel &&
-        other.id == id &&
-        other.name == name &&
-        other.area == area &&
-        other.perimeter == perimeter &&
-        other.distance == distance &&
-        other.coordinateCount == coordinateCount &&
-        other.measurementType == measurementType &&
-        other.createdAt == createdAt &&
-        other.notes == notes;
-  }
-
-  @override
-  int get hashCode {
-    return Object.hash(
-      id,
-      name,
-      area,
-      perimeter,
-      distance,
-      coordinateCount,
-      measurementType,
-      createdAt,
-      notes,
-    );
-  }
+  String toString() => 'MeasurementModel(id: $id, name: $name, '
+      'type: ${type.value}, areaM2: $areaM2, perimeterM: $perimeterM, '
+      'distanceM: $distanceM, mode: ${mode.value}, category: ${category?.value}, '
+      'notes: $notes, avgAccuracyM: $avgAccuracyM, createdAt: $createdAt)';
 }
