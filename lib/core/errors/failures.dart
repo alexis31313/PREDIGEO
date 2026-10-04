@@ -59,3 +59,31 @@ class ExportFailure extends Failure {
     super.message = 'No se pudo exportar los datos. Intente nuevamente.',
   ]);
 }
+
+/// Fallo relacionado con el servicio de GPS deshabilitado.
+class GpsServiceFailure extends Failure {
+  const GpsServiceFailure([
+    super.message = 'El servicio de GPS está deshabilite. Actívelo para continuar.',
+  ]);
+}
+
+/// Fallo relacionado con permisos de ubicación denegados.
+class GpsPermissionFailure extends Failure {
+  const GpsPermissionFailure([
+    super.message = 'Permiso de ubicación denegado. Se requiere acceso a la ubicación.',
+  ]);
+}
+
+/// Fallo relacionado con tiempo de espera agotado al obtener la posición.
+class GpsTimeoutFailure extends Failure {
+  const GpsTimeoutFailure([
+    super.message = 'Se agotó el tiempo de espera al obtener la ubicación GPS.',
+  ]);
+}
+
+/// Fallo relacionado con errores en el stream de posición.
+class GpsStreamFailure extends Failure {
+  const GpsStreamFailure([
+    super.message = 'Ocurrió un error en el flujo de datos de ubicación GPS.',
+  ]);
+}

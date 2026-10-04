@@ -84,3 +84,51 @@ class ExportException implements Exception {
   @override
   String toString() => 'ExportException: $message';
 }
+
+/// Excepción relacionada con el servicio de GPS deshabilitado.
+class GpsServiceException implements Exception {
+  final String message;
+
+  const GpsServiceException([
+    this.message = 'El servicio de GPS está deshabilite. Actívelo para continuar.',
+  ]);
+
+  @override
+  String toString() => 'GpsServiceException: $message';
+}
+
+/// Excepción relacionada con permisos de ubicación denegados.
+class GpsPermissionException implements Exception {
+  final String message;
+
+  const GpsPermissionException([
+    this.message = 'Permiso de ubicación denegado. Se requiere acceso a la ubicación.',
+  ]);
+
+  @override
+  String toString() => 'GpsPermissionException: $message';
+}
+
+/// Excepción relacionada con tiempo de espera agotado al obtener la posición.
+class GpsTimeoutException implements Exception {
+  final String message;
+
+  const GpsTimeoutException([
+    this.message = 'Se agotó el tiempo de espera al obtener la ubicación GPS.',
+  ]);
+
+  @override
+  String toString() => 'GpsTimeoutException: $message';
+}
+
+/// Excepción relacionada con errores en el stream de posición.
+class GpsStreamException implements Exception {
+  final String message;
+
+  const GpsStreamException([
+    this.message = 'Ocurrió un error en el flujo de datos de ubicación GPS.',
+  ]);
+
+  @override
+  String toString() => 'GpsStreamException: $message';
+}

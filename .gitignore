@@ -44,6 +44,12 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# Gradle (Android)
+.gradle/
+android/.gradle/
+android/.idea/
+android/captures/
+
 # Android specific
 android/local.properties
 android/key.properties
@@ -57,8 +63,9 @@ ios/Flutter/flutter_export_environment.sh
 # Environment and secrets
 .env
 *.env
-*key*
-*secret*
+*.pem
+*.key
+secrets.json
 
 # Lock files (for application packages)
 pubspec.lock
