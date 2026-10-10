@@ -179,7 +179,50 @@ lib/
     └── widgets/
 ```
 
-## 6. Consideraciones de Seguridad y Privacidad
+## 6. Motor de Cálculo de Área
+
+### 6.1 Proyección Local (GeoProjector)
+
+El cálculo de área se realiza sobre coordenadas planas obtenidas mediante proyección local sobre el elipsoide GRS80 (equivalente a MAGNA-SIRGAS). La proyección utiliza el centroide del polígono como origen:
+
+```
+x = R · cos(lat₀) · (lon - lon₀)
+y = R · (lat - lat₀)
+```
+
+Donde:
+- `R` = radio de curvatura local del elipsoide GRS80 (a = 6 378 137 m, f = 1/298.257222101)
+- `lat₀, lon₀` = centroide del polígono (origen de la proyección)
+- `lat, lon` = coordenadas del punto a proyectar
+
+**Error esperado:** Para predios de hasta ~100 ha (1 km²), el error de proyección es < 0.1 % debido a que la distorsión del plano tangente es despreciable a esta escala.
+
+### 6.2 Fórmula de Gauss (Shoelace)
+
+El área se calcula con la fórmula de Gauss (shoelace):
+
+```
+A = ½ |Σ(xᵢ · yᵢ₊₁ - xᵢ₊₁ · yᵢ)|
+```
+
+Donde los puntos están ordenados en sentido horario o antihorario y el último punto se conecta con el primero.
+
+### 6.3 Validación de Polígonos
+
+Antes del cálculo, se valida:
+- Mínimo 3 puntos
+- Sin puntos duplicados consecutivos
+- Sin auto-intersección de lados (detección de segmentos que se cruzan)
+
+### 6.4 Unidades de Área
+
+Conversión a unidades usadas en Colombia:
+- 1 hectárea = 10 000 m²
+- 1 fanegada = 6 400 m²
+- 1 plaza = 6 400 m²
+- 1 cuadra = 6 400 m² (uso regional)
+
+## 7. Consideraciones de Seguridad y Privacidad
 
 - Los datos GPS se almacenan únicamente en el dispositivo del usuario
 - No se transmiten datos a servidores externos sin consentimiento explícito
