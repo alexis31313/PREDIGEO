@@ -28,8 +28,8 @@ class SimpleKalmanFilter2D {
   /// Aplica el paso de actualización del filtro con una nueva lectura.
   /// Retorna la lectura filtrada.
   GpsReading update(GpsReading reading) {
-    final measurementNoise = reading.horizontalAccuracy *
-        reading.horizontalAccuracy;
+    final measurementNoise =
+        reading.horizontalAccuracy * reading.horizontalAccuracy;
 
     if (!_initialized) {
       _lat = reading.latitude;

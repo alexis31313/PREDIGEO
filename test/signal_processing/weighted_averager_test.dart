@@ -37,8 +37,10 @@ void main() {
     test('average of multiple readings with same accuracy', () {
       final averager = WeightedAverager();
       final readings = [
-        makeReading(lat: 4.7100, lon: -74.0700, accuracy: 5.0, secondsOffset: 0),
-        makeReading(lat: 4.7120, lon: -74.0740, accuracy: 5.0, secondsOffset: 1),
+        makeReading(
+            lat: 4.7100, lon: -74.0700, accuracy: 5.0, secondsOffset: 0),
+        makeReading(
+            lat: 4.7120, lon: -74.0740, accuracy: 5.0, secondsOffset: 1),
       ];
 
       final result = averager.average(readings);
@@ -50,8 +52,10 @@ void main() {
     test('weighted average favors more accurate readings', () {
       final averager = WeightedAverager();
       final readings = [
-        makeReading(lat: 4.7100, lon: -74.0700, accuracy: 10.0, secondsOffset: 0),
-        makeReading(lat: 4.7120, lon: -74.0740, accuracy: 2.0, secondsOffset: 1),
+        makeReading(
+            lat: 4.7100, lon: -74.0700, accuracy: 10.0, secondsOffset: 0),
+        makeReading(
+            lat: 4.7120, lon: -74.0740, accuracy: 2.0, secondsOffset: 1),
       ];
 
       final result = averager.average(readings);
@@ -85,8 +89,10 @@ void main() {
     test('all zero accuracies uses simple average', () {
       final averager = WeightedAverager();
       final readings = [
-        makeReading(lat: 4.7100, lon: -74.0700, accuracy: 0.0, secondsOffset: 0),
-        makeReading(lat: 4.7120, lon: -74.0740, accuracy: 0.0, secondsOffset: 1),
+        makeReading(
+            lat: 4.7100, lon: -74.0700, accuracy: 0.0, secondsOffset: 0),
+        makeReading(
+            lat: 4.7120, lon: -74.0740, accuracy: 0.0, secondsOffset: 1),
       ];
 
       final result = averager.average(readings);

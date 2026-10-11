@@ -34,7 +34,8 @@ void main() {
       expect(result.errors, isEmpty);
     });
 
-    test('polígono con menos de 3 puntos → isValid false con mensaje de error', () {
+    test('polígono con menos de 3 puntos → isValid false con mensaje de error',
+        () {
       final validator = PolygonValidator();
 
       final cases = <List<GeoPoint>>[
@@ -65,7 +66,9 @@ void main() {
       expect(result.errors.any((e) => e.contains('duplicado')), isTrue);
     });
 
-    test('polígono con autointersección (bowtie) → isValid false con mensaje de error', () {
+    test(
+        'polígono con autointersección (bowtie) → isValid false con mensaje de error',
+        () {
       final validator = PolygonValidator();
 
       final result = validator.validate([

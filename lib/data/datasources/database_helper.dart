@@ -88,7 +88,8 @@ class DatabaseHelper {
     if (current != null && current.isOpen) return current;
 
     final factory = _factory ?? databaseFactory;
-    final path = _databasePath ?? p.join(await factory.getDatabasesPath(), databaseName);
+    final path =
+        _databasePath ?? p.join(await factory.getDatabasesPath(), databaseName);
 
     try {
       final opened = await factory.openDatabase(
@@ -154,8 +155,10 @@ class DatabaseHelper {
   /// pueden volver a capturarse, mientras que una incompatibilidad silenciosa
   /// produciría lecturas corruptas.
   Future<void> _onDowngrade(Database db, int oldVersion, int newVersion) async {
-    await db.execute('DROP TABLE IF EXISTS ${AppConstants.tableFieldEvaluations}');
-    await db.execute('DROP TABLE IF EXISTS ${AppConstants.tableMeasurementPoints}');
+    await db
+        .execute('DROP TABLE IF EXISTS ${AppConstants.tableFieldEvaluations}');
+    await db
+        .execute('DROP TABLE IF EXISTS ${AppConstants.tableMeasurementPoints}');
     await db.execute('DROP TABLE IF EXISTS ${AppConstants.tableMeasurements}');
     await _createSchema(db);
   }
@@ -280,11 +283,12 @@ class DatabaseHelper {
   /// si algo falla, el esquema original queda intacto.
   Future<void> _migrateV1ToV2(Database db) async {
     final legacyMeasurements = await db.query(AppConstants.tableMeasurements);
-    final legacyPoints =
-        await db.query(AppConstants.legacyTableCoordinates);
+    final legacyPoints = await db.query(AppConstants.legacyTableCoordinates);
 
-    await db.execute('DROP TABLE IF EXISTS ${AppConstants.legacyTableCoordinates}');
-    await db.execute('DROP TABLE IF EXISTS ${AppConstants.legacyTableSessions}');
+    await db
+        .execute('DROP TABLE IF EXISTS ${AppConstants.legacyTableCoordinates}');
+    await db
+        .execute('DROP TABLE IF EXISTS ${AppConstants.legacyTableSessions}');
     await db.execute('DROP TABLE IF EXISTS ${AppConstants.tableMeasurements}');
 
     await _createSchema(db);
@@ -381,8 +385,7 @@ class DatabaseHelper {
         : MeasurementType.path.value;
   }
 
-  int? _asInt(Object? value) =>
-      value == null ? null : (value as num).toInt();
+  int? _asInt(Object? value) => value == null ? null : (value as num).toInt();
 
   double? _asDouble(Object? value) =>
       value == null ? null : (value as num).toDouble();

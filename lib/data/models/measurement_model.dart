@@ -41,8 +41,7 @@ class MeasurementModel {
   /// Lanza [ArgumentError] si `type` o `mode` no corresponden a valores válidos
   /// de sus enumeraciones (dato corrupto o esquema desactualizado).
   factory MeasurementModel.fromMap(Map<String, Object?> map) {
-    final rawType =
-        SqliteValues.toStringOrNull(map[AppConstants.columnType]);
+    final rawType = SqliteValues.toStringOrNull(map[AppConstants.columnType]);
     final type = MeasurementType.fromValue(rawType);
     if (type == null) {
       throw ArgumentError(

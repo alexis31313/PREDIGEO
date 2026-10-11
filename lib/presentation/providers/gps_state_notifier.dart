@@ -16,8 +16,7 @@ final locationServiceProvider = Provider<LocationService>((ref) {
 class GpsStateNotifier extends StateNotifier<LocationStatus> {
   final LocationService _locationService;
 
-  GpsStateNotifier(this._locationService)
-      : super(const Acquiring());
+  GpsStateNotifier(this._locationService) : super(const Acquiring());
 
   /// Inicia el proceso de obtención de ubicación:
   /// 1. Verifica que el servicio GPS esté habilitado.

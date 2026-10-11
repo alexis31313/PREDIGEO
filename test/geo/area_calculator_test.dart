@@ -122,7 +122,9 @@ void main() {
   });
 
   group('AreaCalculator.fromGeoPoints', () {
-    test('cuadrado cerca de Mocoa coincide con la referencia geodésica (error < 0.5%)', () {
+    test(
+        'cuadrado cerca de Mocoa coincide con la referencia geodésica (error < 0.5%)',
+        () {
       final dLat = 100.0 / metersPerDegree;
       final dLon = 100.0 / (metersPerDegree * math.cos(toRadians(mocoaLat)));
       final square = [
@@ -139,7 +141,9 @@ void main() {
       expect(error, lessThan(0.005));
     });
 
-    test('triángulo cerca de Mocoa coincide con la referencia geodésica (error < 0.5%)', () {
+    test(
+        'triángulo cerca de Mocoa coincide con la referencia geodésica (error < 0.5%)',
+        () {
       final dLat = 100.0 / metersPerDegree;
       final dLon = 100.0 / (metersPerDegree * math.cos(toRadians(mocoaLat)));
       final triangle = [

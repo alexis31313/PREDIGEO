@@ -47,13 +47,12 @@ class FilterCoordinatesUsecase {
     if (points.length < 3) return points;
 
     final accuracies = points.map((point) => point.accuracy);
-    final meanAccuracy =
-        accuracies.reduce((a, b) => a + b) / points.length;
+    final meanAccuracy = accuracies.reduce((a, b) => a + b) / points.length;
     final variance = points.fold<double>(
-      0.0,
-      (sum, point) =>
-          sum + math.pow(point.accuracy - meanAccuracy, 2).toDouble(),
-    ) /
+          0.0,
+          (sum, point) =>
+              sum + math.pow(point.accuracy - meanAccuracy, 2).toDouble(),
+        ) /
         points.length;
     final stdDev = variance > 0 ? math.sqrt(variance) : 1.0;
 

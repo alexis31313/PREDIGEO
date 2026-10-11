@@ -34,8 +34,7 @@ final measurementHistoryProvider = FutureProvider<List<Measurement>>(
 );
 
 /// Detalle de una medición (cabecera + puntos + evaluaciones).
-final measurementDetailProvider =
-    FutureProvider.family<Measurement?, int>(
+final measurementDetailProvider = FutureProvider.family<Measurement?, int>(
   (ref, id) => ref.watch(measurementRepositoryProvider).getById(id),
 );
 
@@ -64,10 +63,7 @@ class MeasurementFilter {
 
   /// `true` cuando hay al menos un criterio activo.
   bool get hasActiveFilters =>
-      type != null ||
-      mode != null ||
-      category != null ||
-      onlyUncategorized;
+      type != null || mode != null || category != null || onlyUncategorized;
 
   MeasurementFilter copyWith({
     MeasurementType? type,
@@ -153,7 +149,8 @@ class MeasurementHistoryNotifier extends Notifier<void> {
   @override
   void build() {}
 
-  MeasurementRepository get _repository => ref.read(measurementRepositoryProvider);
+  MeasurementRepository get _repository =>
+      ref.read(measurementRepositoryProvider);
 
   Future<void> save(Measurement measurement) async {
     await _repository.insertMeasurement(measurement);

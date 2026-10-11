@@ -134,11 +134,16 @@ void main() {
 
     test('applies outlier filter', () async {
       final readings = [
-        makeReading(lat: 4.7110, lon: -74.0721, accuracy: 5.0, secondsOffset: 0),
-        makeReading(lat: 4.7111, lon: -74.0722, accuracy: 5.0, secondsOffset: 1),
-        makeReading(lat: 4.8000, lon: -74.2000, accuracy: 50.0, secondsOffset: 2),
-        makeReading(lat: 4.7112, lon: -74.0723, accuracy: 5.0, secondsOffset: 3),
-        makeReading(lat: 4.7113, lon: -74.0724, accuracy: 5.0, secondsOffset: 4),
+        makeReading(
+            lat: 4.71100, lon: -74.07210, accuracy: 5.0, secondsOffset: 0),
+        makeReading(
+            lat: 4.71101, lon: -74.07211, accuracy: 5.0, secondsOffset: 1),
+        makeReading(
+            lat: 4.80000, lon: -74.20000, accuracy: 50.0, secondsOffset: 2),
+        makeReading(
+            lat: 4.71102, lon: -74.07212, accuracy: 5.0, secondsOffset: 3),
+        makeReading(
+            lat: 4.71103, lon: -74.07213, accuracy: 5.0, secondsOffset: 4),
       ];
 
       when(() => mockLocationService.getReadingStream())
