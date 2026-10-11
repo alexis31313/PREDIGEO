@@ -56,7 +56,8 @@ class FieldEvaluation {
   }
 
   @override
-  String toString() => 'FieldEvaluation(id: $id, measurementId: $measurementId, '
+  String toString() =>
+      'FieldEvaluation(id: $id, measurementId: $measurementId, '
       'referenceValue: $referenceValue, referenceSource: $referenceSource, '
       'referenceType: ${referenceType.value}, envConditions: $envConditions)';
 

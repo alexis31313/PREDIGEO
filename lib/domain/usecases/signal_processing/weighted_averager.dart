@@ -12,7 +12,8 @@ class WeightedAverager {
   /// Si todas las precisiones son cero, utiliza un promedio simple.
   GpsReading average(List<GpsReading> readings) {
     if (readings.isEmpty) {
-      throw ArgumentError('No se puede calcular el promedio de una lista vacía');
+      throw ArgumentError(
+          'No se puede calcular el promedio de una lista vacía');
     }
 
     bool allZeroAccuracy = readings.every(
@@ -42,9 +43,8 @@ class WeightedAverager {
     final avgAlt = weightedAlt / sumWeights;
     final estimatedAccuracy = 1.0 / _sqrt(sumWeights);
 
-    final latestTimestamp = readings
-        .map((r) => r.timestamp)
-        .reduce((a, b) => a.isAfter(b) ? a : b);
+    final latestTimestamp =
+        readings.map((r) => r.timestamp).reduce((a, b) => a.isAfter(b) ? a : b);
 
     return GpsReading(
       latitude: avgLat,
@@ -70,9 +70,8 @@ class WeightedAverager {
     }
 
     final count = readings.length.toDouble();
-    final latestTimestamp = readings
-        .map((r) => r.timestamp)
-        .reduce((a, b) => a.isAfter(b) ? a : b);
+    final latestTimestamp =
+        readings.map((r) => r.timestamp).reduce((a, b) => a.isAfter(b) ? a : b);
 
     return GpsReading(
       latitude: sumLat / count,

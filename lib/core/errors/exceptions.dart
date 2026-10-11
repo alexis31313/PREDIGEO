@@ -6,7 +6,8 @@ class ServerException implements Exception {
   final String message;
 
   const ServerException([
-    this.message = 'Ocurrió un error en el servidor. Intente nuevamente más tarde.',
+    this.message =
+        'Ocurrió un error en el servidor. Intente nuevamente más tarde.',
   ]);
 
   @override
@@ -90,7 +91,8 @@ class GpsServiceException implements Exception {
   final String message;
 
   const GpsServiceException([
-    this.message = 'El servicio de GPS está deshabilite. Actívelo para continuar.',
+    this.message =
+        'El servicio de GPS está deshabilite. Actívelo para continuar.',
   ]);
 
   @override
@@ -102,7 +104,8 @@ class GpsPermissionException implements Exception {
   final String message;
 
   const GpsPermissionException([
-    this.message = 'Permiso de ubicación denegado. Se requiere acceso a la ubicación.',
+    this.message =
+        'Permiso de ubicación denegado. Se requiere acceso a la ubicación.',
   ]);
 
   @override

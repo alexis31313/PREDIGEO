@@ -66,7 +66,8 @@ class GeoPoint {
   }
 
   @override
-  String toString() => 'GeoPoint(id: $id, measurementId: $measurementId, seq: $seq, '
+  String toString() =>
+      'GeoPoint(id: $id, measurementId: $measurementId, seq: $seq, '
       'lat: $latitude, lng: $longitude, alt: $altitude, acc: $accuracy, ts: $timestamp)';
 
   @override

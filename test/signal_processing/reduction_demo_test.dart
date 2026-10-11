@@ -38,7 +38,9 @@ void main() {
 
     for (int i = 0; i < count; i++) {
       final latNoise = (random.nextDouble() - 0.5) * 2 * noiseMeters / 111320.0;
-      final lonNoise = (random.nextDouble() - 0.5) * 2 * noiseMeters /
+      final lonNoise = (random.nextDouble() - 0.5) *
+          2 *
+          noiseMeters /
           (111320.0 * cos(trueLat * pi / 180.0));
 
       readings.add(makeReading(
@@ -90,7 +92,8 @@ void main() {
     });
 
     test('error reduction with ±2m noise', () {
-      final readings = generateNoisyReadings(count: 100, noiseMeters: 2.0, seed: 1);
+      final readings =
+          generateNoisyReadings(count: 100, noiseMeters: 2.0, seed: 1);
 
       final rawError = calculateAverageError(readings);
 
@@ -111,7 +114,8 @@ void main() {
     });
 
     test('error reduction with ±5m noise', () {
-      final readings = generateNoisyReadings(count: 100, noiseMeters: 5.0, seed: 2);
+      final readings =
+          generateNoisyReadings(count: 100, noiseMeters: 5.0, seed: 2);
 
       final rawError = calculateAverageError(readings);
 
@@ -132,7 +136,8 @@ void main() {
     });
 
     test('error reduction with ±10m noise', () {
-      final readings = generateNoisyReadings(count: 100, noiseMeters: 10.0, seed: 3);
+      final readings =
+          generateNoisyReadings(count: 100, noiseMeters: 10.0, seed: 3);
 
       final rawError = calculateAverageError(readings);
 
@@ -176,7 +181,8 @@ void main() {
     });
 
     test('edge case: insufficient samples throws exception', () {
-      final readings = generateNoisyReadings(count: 3, noiseMeters: 5.0, seed: 4);
+      final readings =
+          generateNoisyReadings(count: 3, noiseMeters: 5.0, seed: 4);
 
       final filter = OutlierFilter(maxAccuracy: 1.0);
       final filtered = filter.filter(readings);

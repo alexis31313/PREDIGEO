@@ -89,7 +89,8 @@ void main() {
         final result = filter.update(noisyReading);
 
         final currentError = sqrt(
-          pow(result.latitude - trueLat, 2) + pow(result.longitude - trueLon, 2),
+          pow(result.latitude - trueLat, 2) +
+              pow(result.longitude - trueLon, 2),
         );
 
         if (i > 5) {
@@ -132,10 +133,12 @@ void main() {
         final highResult = highNoiseFilter.update(noisyReading);
 
         lowNoiseError += sqrt(
-          pow(lowResult.latitude - trueLat, 2) + pow(lowResult.longitude - trueLon, 2),
+          pow(lowResult.latitude - trueLat, 2) +
+              pow(lowResult.longitude - trueLon, 2),
         );
         highNoiseError += sqrt(
-          pow(highResult.latitude - trueLat, 2) + pow(highResult.longitude - trueLon, 2),
+          pow(highResult.latitude - trueLat, 2) +
+              pow(highResult.longitude - trueLon, 2),
         );
       }
 

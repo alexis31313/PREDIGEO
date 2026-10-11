@@ -92,7 +92,8 @@ void main() {
       final readings = [
         makeReading(lat: 4.7110, lon: -74.0721, secondsOffset: 0),
         makeReading(lat: 4.711001, lon: -74.0721, secondsOffset: 1),
-        makeReading(lat: 4.71101, lon: -74.0721, secondsOffset: 2),
+        // ~22 m en 1 s ≈ 22 m/s: supera el umbral de 5 m/s.
+        makeReading(lat: 4.7112, lon: -74.0721, secondsOffset: 2),
       ];
 
       final result = filter.filter(readings);
@@ -124,7 +125,8 @@ void main() {
 
     test('returns false when speed jump is impossible', () {
       final filter = OutlierFilter(maxSpeed: 10.0);
-      final previous = makeReading(lat: 4.7110, lon: -74.0721, secondsOffset: 0);
+      final previous =
+          makeReading(lat: 4.7110, lon: -74.0721, secondsOffset: 0);
       final current = makeReading(lat: 4.7200, lon: -74.0721, secondsOffset: 1);
 
       final result = filter.filterSingle(current, previous);
@@ -134,7 +136,8 @@ void main() {
 
     test('returns true when speed jump is within limits', () {
       final filter = OutlierFilter(maxSpeed: 15.0);
-      final previous = makeReading(lat: 4.7110, lon: -74.0721, secondsOffset: 0);
+      final previous =
+          makeReading(lat: 4.7110, lon: -74.0721, secondsOffset: 0);
       final current = makeReading(lat: 4.7111, lon: -74.0721, secondsOffset: 1);
 
       final result = filter.filterSingle(current, previous);

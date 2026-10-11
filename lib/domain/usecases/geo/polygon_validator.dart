@@ -26,16 +26,19 @@ class PolygonValidator {
 
     final duplicates = _findConsecutiveDuplicates(points);
     if (duplicates.isNotEmpty) {
-      errors.add('Puntos duplicados consecutivos en las posiciones: ${duplicates.join(', ')}.');
+      errors.add(
+          'Puntos duplicados consecutivos en las posiciones: ${duplicates.join(', ')}.');
     }
 
     final intersections = _findSelfIntersections(points);
     if (intersections.isNotEmpty) {
-      errors.add('Se detectaron ${intersections.length} auto-intersección(es) en el polígono.');
+      errors.add(
+          'Se detectaron ${intersections.length} auto-intersección(es) en el polígono.');
     }
 
     if (points.length < 4) {
-      warnings.add('El polígono tiene menos de 4 lados. Verifique la medición.');
+      warnings
+          .add('El polígono tiene menos de 4 lados. Verifique la medición.');
     }
 
     return ValidationResult(
@@ -92,8 +95,8 @@ class PolygonValidator {
     return false;
   }
 
-  bool _segmentsIntersect(
-      (double, double) p1, (double, double) p2, (double, double) p3, (double, double) p4) {
+  bool _segmentsIntersect((double, double) p1, (double, double) p2,
+      (double, double) p3, (double, double) p4) {
     final d1 = _direction(p3, p4, p1);
     final d2 = _direction(p3, p4, p2);
     final d3 = _direction(p1, p2, p3);
@@ -112,12 +115,18 @@ class PolygonValidator {
     return false;
   }
 
-  double _direction((double, double) pi, (double, double) pj, (double, double) pk) {
-    return (pk.$1 - pi.$1) * (pj.$2 - pi.$2) - (pj.$1 - pi.$1) * (pk.$2 - pi.$2);
+  double _direction(
+      (double, double) pi, (double, double) pj, (double, double) pk) {
+    return (pk.$1 - pi.$1) * (pj.$2 - pi.$2) -
+        (pj.$1 - pi.$1) * (pk.$2 - pi.$2);
   }
 
-  bool _onSegment((double, double) pi, (double, double) pj, (double, double) pk) {
-    return (pi.$1 <= pk.$1 && pk.$1 <= pj.$1 && pi.$2 <= pk.$2 && pk.$2 <= pj.$2) ||
+  bool _onSegment(
+      (double, double) pi, (double, double) pj, (double, double) pk) {
+    return (pi.$1 <= pk.$1 &&
+            pk.$1 <= pj.$1 &&
+            pi.$2 <= pk.$2 &&
+            pk.$2 <= pj.$2) ||
         (pi.$1 >= pk.$1 && pk.$1 >= pj.$1 && pi.$2 >= pk.$2 && pk.$2 >= pj.$2);
   }
 }

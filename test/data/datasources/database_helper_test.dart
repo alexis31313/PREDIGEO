@@ -42,8 +42,7 @@ void main() {
       final tables = await db.rawQuery(
         "SELECT name FROM sqlite_master WHERE type = 'table'",
       );
-      final names =
-          tables.map((row) => row['name'] as String).toSet();
+      final names = tables.map((row) => row['name'] as String).toSet();
 
       expect(names, contains(AppConstants.tableMeasurements));
       expect(names, contains(AppConstants.tableMeasurementPoints));

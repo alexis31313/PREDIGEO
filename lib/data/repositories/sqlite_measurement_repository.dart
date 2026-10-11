@@ -348,7 +348,10 @@ class SqliteMeasurementRepository implements MeasurementRepository {
     );
 
     return MeasurementModel.fromMap(rows.first).toEntity(
-      points: pointRows.map(GeoPointModel.fromMap).map((m) => m.toEntity()).toList(),
+      points: pointRows
+          .map(GeoPointModel.fromMap)
+          .map((m) => m.toEntity())
+          .toList(),
       evaluations: evaluationRows
           .map(FieldEvaluationModel.fromMap)
           .map((m) => m.toEntity())
@@ -413,7 +416,8 @@ class SqliteMeasurementRepository implements MeasurementRepository {
 
   void _validateMeasurement(Measurement measurement) {
     if (measurement.name.trim().isEmpty) {
-      throw const ValidationException('El nombre de la medición es obligatorio.');
+      throw const ValidationException(
+          'El nombre de la medición es obligatorio.');
     }
   }
 

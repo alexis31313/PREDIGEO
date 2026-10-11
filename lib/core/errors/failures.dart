@@ -14,7 +14,8 @@ abstract class Failure {
 /// Fallo relacionado con errores del servidor o API remota.
 class ServerFailure extends Failure {
   const ServerFailure([
-    super.message = 'Ocurrió un error en el servidor. Intente nuevamente más tarde.',
+    super.message =
+        'Ocurrió un error en el servidor. Intente nuevamente más tarde.',
   ]);
 }
 
@@ -63,14 +64,16 @@ class ExportFailure extends Failure {
 /// Fallo relacionado con el servicio de GPS deshabilitado.
 class GpsServiceFailure extends Failure {
   const GpsServiceFailure([
-    super.message = 'El servicio de GPS está deshabilite. Actívelo para continuar.',
+    super.message =
+        'El servicio de GPS está deshabilite. Actívelo para continuar.',
   ]);
 }
 
 /// Fallo relacionado con permisos de ubicación denegados.
 class GpsPermissionFailure extends Failure {
   const GpsPermissionFailure([
-    super.message = 'Permiso de ubicación denegado. Se requiere acceso a la ubicación.',
+    super.message =
+        'Permiso de ubicación denegado. Se requiere acceso a la ubicación.',
   ]);
 }
 

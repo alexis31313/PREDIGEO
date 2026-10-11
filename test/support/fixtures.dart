@@ -33,10 +33,30 @@ List<GeoPoint> buildPolygonPoints({double accuracy = 4.0}) {
   final base = DateTime(2026, 3, 15, 14, 30);
 
   return <GeoPoint>[
-    buildPoint(seq: 0, latitude: 1.15380, longitude: -76.65100, accuracy: accuracy, timestamp: base),
-    buildPoint(seq: 1, latitude: 1.15390, longitude: -76.65100, accuracy: accuracy, timestamp: base.add(const Duration(seconds: 2))),
-    buildPoint(seq: 2, latitude: 1.15390, longitude: -76.65090, accuracy: accuracy, timestamp: base.add(const Duration(seconds: 4))),
-    buildPoint(seq: 3, latitude: 1.15380, longitude: -76.65090, accuracy: accuracy, timestamp: base.add(const Duration(seconds: 6))),
+    buildPoint(
+        seq: 0,
+        latitude: 1.15380,
+        longitude: -76.65100,
+        accuracy: accuracy,
+        timestamp: base),
+    buildPoint(
+        seq: 1,
+        latitude: 1.15390,
+        longitude: -76.65100,
+        accuracy: accuracy,
+        timestamp: base.add(const Duration(seconds: 2))),
+    buildPoint(
+        seq: 2,
+        latitude: 1.15390,
+        longitude: -76.65090,
+        accuracy: accuracy,
+        timestamp: base.add(const Duration(seconds: 4))),
+    buildPoint(
+        seq: 3,
+        latitude: 1.15380,
+        longitude: -76.65090,
+        accuracy: accuracy,
+        timestamp: base.add(const Duration(seconds: 6))),
   ];
 }
 

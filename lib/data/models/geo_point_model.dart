@@ -34,7 +34,8 @@ class GeoPointModel {
       measurementId: SqliteValues.toInt(map[AppConstants.columnMeasurementId]),
       seq: SqliteValues.toInt(map[AppConstants.columnSeq]) ?? 0,
       latitude: SqliteValues.toDouble(map[AppConstants.columnLatitude]) ?? 0.0,
-      longitude: SqliteValues.toDouble(map[AppConstants.columnLongitude]) ?? 0.0,
+      longitude:
+          SqliteValues.toDouble(map[AppConstants.columnLongitude]) ?? 0.0,
       altitude: SqliteValues.toDouble(map[AppConstants.columnAltitude]) ?? 0.0,
       accuracy: SqliteValues.toDouble(map[AppConstants.columnAccuracy]) ?? 0.0,
       timestamp: SqliteValues.dateTimeFromText(

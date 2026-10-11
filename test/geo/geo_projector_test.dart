@@ -113,8 +113,10 @@ void main() {
       final projected = projector.projectList(points);
 
       expect(projected.length, points.length);
-      expect(projected.first.x, closeTo(projector.project(points.first).x, 1e-9));
-      expect(projected.first.y, closeTo(projector.project(points.first).y, 1e-9));
+      expect(
+          projected.first.x, closeTo(projector.project(points.first).x, 1e-9));
+      expect(
+          projected.first.y, closeTo(projector.project(points.first).y, 1e-9));
     });
   });
 

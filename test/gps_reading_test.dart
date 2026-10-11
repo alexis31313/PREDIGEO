@@ -24,8 +24,7 @@ void main() {
       when(() => mockPosition.accuracy).thenReturn(3.5);
       when(() => mockPosition.altitudeAccuracy).thenReturn(1.2);
       when(() => mockPosition.speed).thenReturn(0.8);
-      when(() => mockPosition.timestamp)
-          .thenReturn(DateTime.parse(timestamp));
+      when(() => mockPosition.timestamp).thenReturn(DateTime.parse(timestamp));
 
       final reading = GpsReading.fromPosition(mockPosition);
 

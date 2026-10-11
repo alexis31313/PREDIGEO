@@ -70,9 +70,7 @@ class MeasurementNotifier extends StateNotifier<List<Measurement>> {
   }
 
   Future<void> updateMeasurement(Measurement measurement) async {
-    state = state
-        .map((m) => m.id == measurement.id ? measurement : m)
-        .toList();
+    state = state.map((m) => m.id == measurement.id ? measurement : m).toList();
   }
 
   Future<void> deleteMeasurement(String id) async {

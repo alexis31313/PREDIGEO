@@ -76,7 +76,8 @@ class GeoUtils {
 
     double perimeter = 0.0;
     for (int i = 0; i < lats.length - 1; i++) {
-      perimeter += haversineDistance(lats[i], lons[i], lats[i + 1], lons[i + 1]);
+      perimeter +=
+          haversineDistance(lats[i], lons[i], lats[i + 1], lons[i + 1]);
     }
 
     perimeter += haversineDistance(

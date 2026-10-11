@@ -29,7 +29,8 @@ class SqliteValues {
     final text = raw.toString();
     final parsed = DateTime.tryParse(text);
     if (parsed == null) {
-      throw ArgumentError('El valor "$text" de "$column" no es una fecha válida.');
+      throw ArgumentError(
+          'El valor "$text" de "$column" no es una fecha válida.');
     }
     return parsed.toLocal();
   }

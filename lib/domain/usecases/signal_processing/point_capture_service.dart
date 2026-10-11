@@ -100,6 +100,25 @@ class PointCaptureService {
           );
         }
       },
+      onDone: () {
+        // El stream puede terminar de forma natural antes de alcanzar el
+        // número de muestras solicitado (por ejemplo, si hay pocas lecturas
+        // válidas). En ese caso se finaliza la captura de inmediato en lugar
+        // de esperar en vano a que se agote el tiempo de espera.
+        timeoutTimer?.cancel();
+        if (completer.isCompleted) return;
+        if (validReadings.length < 3) {
+          completer.completeError(
+            InsufficientSamplesException(
+              'No se obtuvieron suficientes muestras válidas. '
+              'Se obtuvieron ${validReadings.length}, se requieren al menos 3. '
+              'Verifique la señal GPS e intente nuevamente.',
+            ),
+          );
+        } else {
+          completer.complete(_buildCapturedPoint(validReadings));
+        }
+      },
     );
 
     return completer.future;

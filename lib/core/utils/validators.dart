@@ -62,7 +62,8 @@ class Validators {
   /// Retorna true si el nombre es válido, lanza ValidationException en caso contrario.
   static bool validateMeasurementName(String name) {
     if (name.trim().isEmpty) {
-      throw ValidationException('El nombre de la medición no puede estar vacío');
+      throw ValidationException(
+          'El nombre de la medición no puede estar vacío');
     }
     if (name.trim().length < 3) {
       throw ValidationException(

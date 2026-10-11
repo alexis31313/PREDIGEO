@@ -61,7 +61,8 @@ class AppTheme {
         ),
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
       textTheme: const TextTheme(
         headlineLarge: TextStyle(
@@ -137,7 +138,8 @@ class AppTheme {
         ),
         filled: true,
         fillColor: const Color(0xFF2C2C2C),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
       textTheme: const TextTheme(
         headlineLarge: TextStyle(

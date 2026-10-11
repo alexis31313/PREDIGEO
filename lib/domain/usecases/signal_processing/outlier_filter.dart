@@ -49,10 +49,8 @@ class OutlierFilter {
         reading.longitude,
       );
 
-      final timeDiff = reading.timestamp
-          .difference(previous.timestamp)
-          .inMilliseconds
-          .abs();
+      final timeDiff =
+          reading.timestamp.difference(previous.timestamp).inMilliseconds.abs();
 
       if (timeDiff > 0) {
         final impliedSpeed = distance / (timeDiff / 1000.0);

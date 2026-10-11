@@ -330,7 +330,8 @@ void main() {
 
   group('search', () {
     test('busca por coincidencia parcial sin distinguir mayúsculas', () async {
-      await repository.insertMeasurement(buildMeasurement(name: 'Finca El Mirador'));
+      await repository
+          .insertMeasurement(buildMeasurement(name: 'Finca El Mirador'));
       await repository.insertMeasurement(buildMeasurement(name: 'Lote Norte'));
       await repository.insertMeasurement(buildMeasurement(name: 'Potrero Sur'));
 
@@ -424,8 +425,7 @@ void main() {
 
     test('filtra por modalidad de captura', () async {
       await seed();
-      final offline =
-          await repository.filter(mode: MeasurementMode.offline);
+      final offline = await repository.filter(mode: MeasurementMode.offline);
       expect(offline.map((m) => m.name), ['Trayecto urbano', 'Pasto 1']);
 
       final online = await repository.filter(mode: MeasurementMode.online);
@@ -438,7 +438,8 @@ void main() {
           await repository.filter(category: MeasurementCategory.ruralOpen);
       expect(ruralOpen.single.name, 'Pasto 1');
 
-      final urban = await repository.filter(category: MeasurementCategory.urban);
+      final urban =
+          await repository.filter(category: MeasurementCategory.urban);
       expect(urban.single.name, 'Trayecto urbano');
     });
 

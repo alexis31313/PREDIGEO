@@ -143,7 +143,8 @@ class GpsDebugScreen extends ConsumerWidget {
         children: [
           Expanded(
             child: ElevatedButton.icon(
-              onPressed: () => ref.read(gpsStateNotifierProvider.notifier).start(),
+              onPressed: () =>
+                  ref.read(gpsStateNotifierProvider.notifier).start(),
               icon: const Icon(Icons.play_arrow),
               label: const Text('Iniciar'),
               style: ElevatedButton.styleFrom(
@@ -156,7 +157,8 @@ class GpsDebugScreen extends ConsumerWidget {
           const SizedBox(width: 12),
           Expanded(
             child: ElevatedButton.icon(
-              onPressed: () => ref.read(gpsStateNotifierProvider.notifier).stop(),
+              onPressed: () =>
+                  ref.read(gpsStateNotifierProvider.notifier).stop(),
               icon: const Icon(Icons.stop),
               label: const Text('Detener'),
               style: ElevatedButton.styleFrom(
