@@ -137,4 +137,5 @@ Mocoa, Putumayo
 
 ## Licencia
 
-Este proyecto está bajo la Licencia MIT. Consulta el archivo [LICENSE](LICENSE) para más detalles.
+Este proyecto está bajo la Licencia MIT. Su uso con fines académicos es libre y bienvenido, solicitando únicamente la atribución correspondiente a los autores. Consulta el archivo [LICENSE](LICENSE) para más detalles.
+v1.0

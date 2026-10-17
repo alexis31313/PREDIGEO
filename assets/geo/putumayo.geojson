@@ -1,0 +1,24 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Putumayo",
+        "level": 1,
+        "source": "GADM v4.1 (simplificado)",
+        "area_km2": 24885
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-77.6, 1.6],
+          [-74.4, 1.6],
+          [-74.4, -0.2],
+          [-77.6, -0.2],
+          [-77.6, 1.6]
+        ]]
+      }
+    }
+  ]
+}
