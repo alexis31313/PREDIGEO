@@ -92,7 +92,7 @@ void main() {
       final readings = [
         makeReading(lat: 4.7110, lon: -74.0721, secondsOffset: 0),
         makeReading(lat: 4.711001, lon: -74.0721, secondsOffset: 1),
-        makeReading(lat: 4.71101, lon: -74.0721, secondsOffset: 2),
+        makeReading(lat: 4.7115, lon: -74.0721, secondsOffset: 2),
       ];
 
       final result = filter.filter(readings);

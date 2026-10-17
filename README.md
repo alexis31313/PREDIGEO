@@ -1,6 +1,10 @@
 # PrediGeo
 
+[![Descargar APK v1.0.0](https://img.shields.io/badge/Descargar-APK%20v1.0.0-2E7D32?style=for-the-badge&logo=android)](https://github.com/TU-USUARIO/predigeo/releases/tag/v1.0.0)
+
 Aplicación móvil Flutter para la captura, procesamiento y análisis de datos GPS en tiempo real, orientada a la medición de áreas, distancias y perímetros de terrenos.
+
+> **Instalación rápida:** descarga `predigeo-v1.0.0.apk` desde la [Release v1.0.0](https://github.com/TU-USUARIO/predigeo/releases/tag/v1.0.0) y sigue la [guía de instalación](docs/guia_instalacion.md). Requiere Android 7.0 (API 24) o superior.
 
 ## Descripción del Proyecto
 
@@ -18,8 +22,12 @@ PrediGeo es una herramienta de medición geográfica que permite a los usuarios 
 - Evaluación de precisión (error absoluto, porcentual, RMSE)
 - Modo conectado con Google Maps
 - Modo offline sin dependencia de internet
-- Exportación de datos en formato CSV
+- Exportación de datos en formatos CSV, GeoJSON y KML
 - Gestión de permisos de ubicación
+
+## Capturas de Pantalla
+
+[Captura pendiente]
 
 ## Stack Tecnológico
 
@@ -57,17 +65,10 @@ cd predigeo
 flutter pub get
 ```
 
-3. Configurar la API key de Google Maps:
+3. Configurar la API key de Google Maps en `local.properties`:
 
-   - Crear un proyecto en [Google Cloud Console](https://console.cloud.google.com/)
-   - Habilitar la API de Maps SDK for Android
-   - Generar una clave de API
-   - Agregar la clave en `android/app/src/main/AndroidManifest.xml`:
-
-```xml
-<meta-data
-    android:name="com.google.android.geo.API_KEY"
-    android:value="TU_API_KEY_AQUI"/>
+```properties
+googleMapsApiKey=TU_API_KEY_AQUI
 ```
 
 4. Configurar permisos de ubicación en `android/app/src/main/AndroidManifest.xml`:
@@ -79,17 +80,42 @@ flutter pub get
 <uses-permission android:name="android.permission.INTERNET"/>
 ```
 
-## Cómo Ejecutar
+## Uso
+
+### Ejecutar la aplicación
 
 ```bash
 flutter run
 ```
 
-Para generar un APK de release:
+### Ejecutar pruebas
+
+```bash
+flutter test
+```
+
+### Generar APK de depuración
+
+```bash
+flutter build apk --debug
+```
+
+### Generar APK firmado (release)
 
 ```bash
 flutter build apk --release
+flutter build apk --release --split-per-abi
+# Opcional para Google Play:
+flutter build appbundle
 ```
+
+El APK queda en `build/app/outputs/flutter-apk/app-release.apk`. Verifica su integridad con:
+
+```powershell
+Get-FileHash build/app/outputs/flutter-apk/app-release.apk -Algorithm SHA256
+```
+
+Ver la [guía de instalación](docs/guia_instalacion.md) para requisitos, permisos y firma.
 
 ## Estructura del Proyecto
 
@@ -129,6 +155,7 @@ predigeo/
 
 - **Steve Alexander Calvache Martinez**
 - **Luis Alejandro Paz Acero**
+- **Asesor**: Jhon Alexander Gómez
 
 ## Institución
 
@@ -137,4 +164,4 @@ Mocoa, Putumayo
 
 ## Licencia
 
-Este proyecto está bajo la Licencia MIT. Consulta el archivo [LICENSE](LICENSE) para más detalles.
+Este proyecto está bajo la Licencia MIT. Su uso con fines académicos es libre y bienvenido, solicitando únicamente la atribución correspondiente a los autores. Consulta el archivo [LICENSE](LICENSE) para más detalles.

@@ -14,6 +14,13 @@ class HomeScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('PrediGeo'),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            tooltip: 'Ajustes',
+            onPressed: () => context.push('/settings'),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -69,10 +76,17 @@ class HomeScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             _MenuCard(
-              icon: Icons.satellite_alt,
-              title: 'GPS Debug',
-              subtitle: 'Ver señal GPS en tiempo real',
-              onTap: () => context.push('/gps-debug'),
+              icon: Icons.bar_chart,
+              title: 'Resultados',
+              subtitle: 'Ver resultados y análisis gráficos',
+              onTap: () => context.push('/results'),
+            ),
+            const SizedBox(height: 12),
+            _MenuCard(
+              icon: Icons.settings,
+              title: 'Ajustes',
+              subtitle: 'Configurar medición, unidades y tema',
+              onTap: () => context.push('/settings'),
             ),
           ],
         ),

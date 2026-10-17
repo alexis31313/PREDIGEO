@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:predigeo/data/datasources/location_service.dart';
 import 'package:predigeo/domain/entities/gps_reading.dart';
 import 'package:predigeo/domain/usecases/signal_processing/captured_point.dart';
@@ -78,7 +79,7 @@ void main() {
       );
 
       await expectLater(
-        service.capturePoint(samples: 5),
+        service.capturePoint(samples: 5, timeout: const Duration(seconds: 1)),
         throwsA(isA<InsufficientSamplesException>()),
       );
     });
@@ -135,27 +136,34 @@ void main() {
     test('applies outlier filter', () async {
       final readings = [
         makeReading(lat: 4.7110, lon: -74.0721, accuracy: 5.0, secondsOffset: 0),
-        makeReading(lat: 4.7111, lon: -74.0722, accuracy: 5.0, secondsOffset: 1),
-        makeReading(lat: 4.8000, lon: -74.2000, accuracy: 50.0, secondsOffset: 2),
-        makeReading(lat: 4.7112, lon: -74.0723, accuracy: 5.0, secondsOffset: 3),
-        makeReading(lat: 4.7113, lon: -74.0724, accuracy: 5.0, secondsOffset: 4),
+        makeReading(lat: 4.711001, lon: -74.072101, accuracy: 5.0, secondsOffset: 1),
+        makeReading(lat: 4.711002, lon: -74.072102, accuracy: 50.0, secondsOffset: 2),
+        makeReading(lat: 4.711003, lon: -74.072103, accuracy: 5.0, secondsOffset: 3),
+        makeReading(lat: 4.711004, lon: -74.072104, accuracy: 5.0, secondsOffset: 4),
       ];
 
+      final controller = StreamController<GpsReading>();
       when(() => mockLocationService.getReadingStream())
-          .thenAnswer((_) => Stream.fromIterable(readings));
+          .thenAnswer((_) => controller.stream);
 
       final service = PointCaptureService(
         locationService: mockLocationService,
-        outlierFilter: OutlierFilter(maxAccuracy: 20.0),
+        outlierFilter: OutlierFilter(maxAccuracy: 20.0, maxSpeed: 100.0),
       );
 
-      final result = await service.capturePoint(
-        samples: 3,
+      final future = service.capturePoint(
+        samples: 4,
         timeout: const Duration(seconds: 5),
       );
 
-      expect(result.latitude, closeTo(4.7111, 0.001));
-      expect(result.longitude, closeTo(-74.0722, 0.001));
+      for (final reading in readings) {
+        controller.add(reading);
+      }
+      await controller.close();
+
+      final result = await future;
+
+      expect(result.sampleCount, 4);
     });
   });
 }

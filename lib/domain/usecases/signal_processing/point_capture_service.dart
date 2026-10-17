@@ -100,6 +100,21 @@ class PointCaptureService {
           );
         }
       },
+      onDone: () {
+        if (!completer.isCompleted) {
+          if (validReadings.length < 3) {
+            completer.completeError(
+              InsufficientSamplesException(
+                'No se obtuvieron suficientes muestras válidas. '
+                'Se obtuvieron ${validReadings.length}, se requieren al menos 3. '
+                'Verifique la señal GPS e intente nuevamente.',
+              ),
+            );
+          } else {
+            completer.complete(_buildCapturedPoint(validReadings));
+          }
+        }
+      },
     );
 
     return completer.future;
