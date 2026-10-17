@@ -23,10 +23,10 @@ void main() {
       expect(center.longitude, closeTo(-75.0, 1e-9));
     });
 
-    test('lista vacía devuelve el origen', () {
+    test('lista vacía devuelve el centro de Mocoa', () {
       final center = MapCamera.center(const []);
-      expect(center.latitude, 0);
-      expect(center.longitude, 0);
+      expect(center.latitude, 1.15);
+      expect(center.longitude, -76.65);
     });
   });
 

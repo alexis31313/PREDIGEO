@@ -6,7 +6,7 @@ import '../providers/connectivity_provider.dart';
 import 'measurement_map_view.dart';
 import 'terrain_relief_view.dart';
 
-/// Sección que alterna automáticamente entre el mapa de Google Maps (modo
+/// Sección que alterna automáticamente entre el mapa de OpenStreetMap (modo
 /// conectado) y la vista de relieve local (modo sin conexión).
 ///
 /// La conmutación es transparente para la pantalla que la usa: basta con
