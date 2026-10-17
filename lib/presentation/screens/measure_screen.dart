@@ -160,7 +160,7 @@ class _MeasureScreenState extends ConsumerState<MeasureScreen> {
                 _buildCaptureParams(settings),
                 const SizedBox(height: 16),
                 _buildResultsCard(session),
-                if (session.pointCount >= 2) ...[
+                if (session.pointCount >= 1) ...[
                   const SizedBox(height: 16),
                   _buildReliefSection(session),
                 ],
