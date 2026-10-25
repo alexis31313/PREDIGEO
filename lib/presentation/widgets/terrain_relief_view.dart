@@ -17,8 +17,7 @@ import 'relief_colors.dart';
 /// - El norte queda arriba.
 /// - Escalado automático con margen (padding) para encajar en el espacio
 ///   disponible, conservando las proporciones.
-/// - Vértices coloreados según su altitud (azul = bajo, verde = medio,
-///   marrón = alto) y numerados en orden de captura.
+/// - Vértices coloreados según su altitud con la paleta activa del tema.
 /// - Leyenda con el rango de altitudes del recorrido.
 class TerrainReliefView extends StatelessWidget {
   /// Puntos GNSS del recorrido, en orden de captura.
@@ -49,6 +48,11 @@ class TerrainReliefView extends StatelessWidget {
           backgroundColor: theme.colorScheme.surfaceContainerHighest,
           outlineColor: theme.colorScheme.onSurfaceVariant,
           labelColor: theme.colorScheme.onSurface,
+          markerSurfaceColor: theme.colorScheme.surface,
+          markerLabelColor: theme.colorScheme.surface,
+          lowColor: theme.colorScheme.primary,
+          middleColor: theme.colorScheme.tertiary,
+          highColor: theme.colorScheme.secondary,
         ),
       ),
     );
@@ -62,6 +66,11 @@ class _TerrainReliefPainter extends CustomPainter {
   final Color backgroundColor;
   final Color outlineColor;
   final Color labelColor;
+  final Color markerSurfaceColor;
+  final Color markerLabelColor;
+  final Color lowColor;
+  final Color middleColor;
+  final Color highColor;
 
   _TerrainReliefPainter({
     required this.points,
@@ -70,6 +79,11 @@ class _TerrainReliefPainter extends CustomPainter {
     required this.backgroundColor,
     required this.outlineColor,
     required this.labelColor,
+    required this.markerSurfaceColor,
+    required this.markerLabelColor,
+    required this.lowColor,
+    required this.middleColor,
+    required this.highColor,
   });
 
   static const double _padding = 36.0;
@@ -184,12 +198,12 @@ class _TerrainReliefPainter extends CustomPainter {
         canvas.drawCircle(
           screenPoints.first,
           5,
-          Paint()..color = reliefLowColor,
+          Paint()..color = lowColor,
         );
         canvas.drawCircle(
           screenPoints.last,
           5,
-          Paint()..color = reliefHighColor,
+          Paint()..color = highColor,
         );
       }
     }
@@ -199,22 +213,32 @@ class _TerrainReliefPainter extends CustomPainter {
       final t = altitudeRange <= 0
           ? 0.5
           : (valid[i].altitude - minAltitude) / altitudeRange;
-      final color = altitudeColor(t);
+      final color = altitudeColor(
+        t,
+        low: lowColor,
+        middle: middleColor,
+        high: highColor,
+      );
       final center = screenPoints[i];
-      canvas.drawCircle(center, 7, Paint()..color = Colors.white);
+      canvas.drawCircle(center, 7, Paint()..color = markerSurfaceColor);
       canvas.drawCircle(center, 5.5, Paint()..color = color);
-      _paintVertexLabel(canvas, '${i + 1}', center);
+      _paintVertexLabel(canvas, '${i + 1}', center, markerLabelColor);
     }
 
     _paintLegend(canvas, size, minAltitude, maxAltitude);
   }
 
-  void _paintVertexLabel(Canvas canvas, String text, Offset center) {
+  void _paintVertexLabel(
+    Canvas canvas,
+    String text,
+    Offset center,
+    Color color,
+  ) {
     final painter = TextPainter(
       text: TextSpan(
         text: text,
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: color,
           fontSize: 8,
           fontWeight: FontWeight.bold,
         ),
@@ -242,10 +266,10 @@ class _TerrainReliefPainter extends CustomPainter {
     canvas.drawRRect(
       RRect.fromRectAndRadius(rect, const Radius.circular(3)),
       Paint()
-        ..shader = const LinearGradient(
+        ..shader = LinearGradient(
           begin: Alignment.bottomCenter,
           end: Alignment.topCenter,
-          colors: [reliefLowColor, reliefMidColor, reliefHighColor],
+          colors: [lowColor, middleColor, highColor],
         ).createShader(rect),
     );
 
@@ -310,6 +334,14 @@ class _TerrainReliefPainter extends CustomPainter {
   bool shouldRepaint(covariant _TerrainReliefPainter oldDelegate) {
     return oldDelegate.points != points ||
         oldDelegate.closePolygon != closePolygon ||
-        oldDelegate.maxAccuracy != maxAccuracy;
+        oldDelegate.maxAccuracy != maxAccuracy ||
+        oldDelegate.backgroundColor != backgroundColor ||
+        oldDelegate.outlineColor != outlineColor ||
+        oldDelegate.labelColor != labelColor ||
+        oldDelegate.markerSurfaceColor != markerSurfaceColor ||
+        oldDelegate.markerLabelColor != markerLabelColor ||
+        oldDelegate.lowColor != lowColor ||
+        oldDelegate.middleColor != middleColor ||
+        oldDelegate.highColor != highColor;
   }
 }
