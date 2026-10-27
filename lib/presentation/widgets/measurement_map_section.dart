@@ -27,13 +27,17 @@ class MeasurementMapSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isOnline = ref.watch(isOnlineProvider);
-
-    if (isOnline) {
-      return mapBuilder?.call(points, closePolygon) ??
-          MeasurementMapView(points: points, closePolygon: closePolygon);
-    }
-
-    return _OfflineRelief(points: points, closePolygon: closePolygon);
+    final content = isOnline
+        ? mapBuilder?.call(points, closePolygon) ??
+            MeasurementMapView(points: points, closePolygon: closePolygon)
+        : _OfflineRelief(points: points, closePolygon: closePolygon);
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 280),
+      child: KeyedSubtree(
+        key: ValueKey(isOnline),
+        child: content,
+      ),
+    );
   }
 }
 
@@ -70,10 +74,7 @@ class _OfflineRelief extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Expanded(
-          child: TerrainReliefView(
-            points: points,
-            closePolygon: closePolygon,
-          ),
+          child: TerrainReliefView(points: points, closePolygon: closePolygon),
         ),
       ],
     );

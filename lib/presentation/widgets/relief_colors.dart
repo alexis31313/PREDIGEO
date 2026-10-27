@@ -7,14 +7,15 @@ import 'package:flutter/material.dart';
 /// del recorrido (0 = la más baja, 1 = la más alta). El degradado va de azul
 /// (zonas bajas) a verde (intermedias) y a marrón (zonas altas), siguiendo la
 /// convención cartográfica habitual.
-const Color reliefLowColor = Color(0xFF1E88E5);
-const Color reliefMidColor = Color(0xFF43A047);
-const Color reliefHighColor = Color(0xFF795548);
-
-Color altitudeColor(double t) {
+Color altitudeColor(
+  double t, {
+  required Color low,
+  required Color middle,
+  required Color high,
+}) {
   final clamped = t.clamp(0.0, 1.0);
   if (clamped <= 0.5) {
-    return Color.lerp(reliefLowColor, reliefMidColor, clamped * 2)!;
+    return Color.lerp(low, middle, clamped * 2)!;
   }
-  return Color.lerp(reliefMidColor, reliefHighColor, (clamped - 0.5) * 2)!;
+  return Color.lerp(middle, high, (clamped - 0.5) * 2)!;
 }

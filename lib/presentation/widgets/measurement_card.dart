@@ -23,6 +23,7 @@ class MeasurementCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: InkWell(
@@ -69,22 +70,21 @@ class MeasurementCard extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 _formatDate(date),
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 13, color: colors.onSurfaceVariant),
               ),
               const SizedBox(height: 12),
               Row(
                 children: [
-                  Icon(Icons.square_foot, size: 16, color: Colors.grey[600]),
+                  Icon(Icons.square_foot,
+                      size: 16, color: colors.onSurfaceVariant),
                   const SizedBox(width: 4),
                   Text(
                     '${area.toStringAsFixed(2)} m²',
                     style: const TextStyle(fontSize: 14),
                   ),
                   const SizedBox(width: 20),
-                  Icon(Icons.straighten, size: 16, color: Colors.grey[600]),
+                  Icon(Icons.straighten,
+                      size: 16, color: colors.onSurfaceVariant),
                   const SizedBox(width: 4),
                   Text(
                     '${distance.toStringAsFixed(2)} m',

@@ -216,12 +216,7 @@ class _ElevationProfilePainter extends CustomPainter {
     canvas.drawLine(Offset(left, top), Offset(left, bottom), axisPaint);
     canvas.drawLine(Offset(left, bottom), Offset(right, bottom), axisPaint);
 
-    _paintText(
-      canvas,
-      '0 m',
-      Offset(left, bottom + 8),
-      align: TextAlign.left,
-    );
+    _paintText(canvas, '0 m', Offset(left, bottom + 8), align: TextAlign.left);
     if (maxDistance > 1.0 || distances.length > 1) {
       _paintText(
         canvas,

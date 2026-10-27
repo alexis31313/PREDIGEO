@@ -8,8 +8,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/theme/app_theme.dart';
 import '../../domain/entities/location_status.dart';
 import '../../domain/entities/measurement.dart';
 import '../../domain/entities/measurement_enums.dart';
@@ -75,6 +77,7 @@ class _MeasureScreenState extends ConsumerState<MeasureScreen> {
         );
       } else {
         notifier.addCapturedPoint(captured);
+        await HapticFeedback.mediumImpact();
       }
     } on InsufficientSamplesException catch (e) {
       notifier.failCapture(e.message);
@@ -157,9 +160,9 @@ class _MeasureScreenState extends ConsumerState<MeasureScreen> {
                 const SizedBox(height: 16),
                 _buildSignalCard(liveReading, gpsMessage),
                 const SizedBox(height: 16),
-                _buildCaptureParams(settings),
-                const SizedBox(height: 16),
                 _buildResultsCard(session),
+                const SizedBox(height: 8),
+                _buildCaptureParams(settings),
                 if (session.pointCount >= 1) ...[
                   const SizedBox(height: 16),
                   _buildReliefSection(session),
@@ -257,46 +260,100 @@ class _MeasureScreenState extends ConsumerState<MeasureScreen> {
   }
 
   Widget _buildResultsCard(MeasurementSessionState session) {
-    final rows = <Widget>[
-      _metricRow('Puntos capturados', '${session.pointCount}'),
-    ];
-
+    final String primaryLabel;
+    final String primaryValue;
+    final secondaryMetrics = <Widget>[];
     if (session.type == MeasurementType.area) {
-      if (session.areaM2 != null) {
-        rows.add(_metricRow('Área', AreaUnits.formatArea(session.areaM2!)));
-      }
+      primaryLabel = 'Área';
+      primaryValue =
+          session.areaM2 == null ? '—' : AreaUnits.formatArea(session.areaM2!);
       if (session.perimeterM != null) {
-        rows.add(_metricRow('Perímetro', _formatMeters(session.perimeterM!)));
+        secondaryMetrics.add(
+          _metricRow('Perímetro', _formatMeters(session.perimeterM!)),
+        );
       }
-    } else if (session.distanceM != null) {
-      rows.add(_metricRow('Distancia', _formatMeters(session.distanceM!)));
+    } else {
+      primaryLabel = 'Distancia';
+      primaryValue =
+          session.distanceM == null ? '—' : _formatMeters(session.distanceM!);
     }
-
     if (session.pointCount > 0) {
-      rows.add(
+      secondaryMetrics.add(
         _metricRow('Precisión media', _formatMeters(session.avgAccuracyM)),
       );
     }
+    secondaryMetrics.insert(
+      0,
+      _metricRow('Puntos capturados', '${session.pointCount}'),
+    );
+    final status = Theme.of(context).extension<AppStatusColors>();
+    final warningColor =
+        status?.warning ?? Theme.of(context).colorScheme.tertiary;
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Resultado',
-              style: TextStyle(fontWeight: FontWeight.w600),
+            Text('Resultado', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    primaryLabel,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color:
+                              Theme.of(context).colorScheme.onPrimaryContainer,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    primaryValue,
+                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                          color:
+                              Theme.of(context).colorScheme.onPrimaryContainer,
+                        ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 8),
-            ...rows,
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: secondaryMetrics,
+            ),
             if (!session.hasEnoughPoints) ...[
               const SizedBox(height: 8),
-              Text(
-                session.type == MeasurementType.area
-                    ? 'Capture al menos 3 puntos para calcular el área.'
-                    : 'Capture al menos 2 puntos para calcular la distancia.',
-                style: const TextStyle(fontSize: 12, color: Colors.orange),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: warningColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: warningColor, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        session.type == MeasurementType.area
+                            ? 'Capture al menos 3 puntos para calcular el área.'
+                            : 'Capture al menos 2 puntos para calcular la distancia.',
+                        style: TextStyle(color: warningColor, fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ],
@@ -329,9 +386,13 @@ class _MeasureScreenState extends ConsumerState<MeasureScreen> {
             const SizedBox(height: 8),
             SizedBox(
               height: 220,
-              child: MeasurementMapSection(
-                points: session.points,
-                closePolygon: session.type == MeasurementType.area,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 280),
+                child: MeasurementMapSection(
+                  key: ValueKey(session.type),
+                  points: session.points,
+                  closePolygon: session.type == MeasurementType.area,
+                ),
               ),
             ),
           ],
@@ -374,26 +435,13 @@ class _MeasureScreenState extends ConsumerState<MeasureScreen> {
               )
             else
               for (var i = 0; i < points.length; i++)
-                ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  leading: CircleAvatar(
-                    radius: 14,
-                    child: Text(
-                      '${i + 1}',
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ),
-                  title: Text(
-                    'Lat ${points[i].latitude.toStringAsFixed(6)}, '
-                    'Lon ${points[i].longitude.toStringAsFixed(6)}',
-                    style: const TextStyle(fontSize: 13),
-                  ),
-                  subtitle: Text(
-                    'Alt ${points[i].altitude.toStringAsFixed(1)} m · '
-                    'Precisión ${points[i].accuracy.toStringAsFixed(1)} m',
-                    style: const TextStyle(fontSize: 12),
-                  ),
+                _PointTimelineItem(
+                  index: i,
+                  isLast: i == points.length - 1,
+                  latitude: points[i].latitude,
+                  longitude: points[i].longitude,
+                  altitude: points[i].altitude,
+                  accuracy: points[i].accuracy,
                 ),
           ],
         ),
@@ -434,7 +482,6 @@ class _MeasureScreenState extends ConsumerState<MeasureScreen> {
           decoration: const InputDecoration(
             labelText: 'Nombre de la medición',
             hintText: 'Ej. Lote norte',
-            border: OutlineInputBorder(),
           ),
           onChanged: (value) =>
               ref.read(measurementSessionProvider.notifier).setName(value),
@@ -444,7 +491,6 @@ class _MeasureScreenState extends ConsumerState<MeasureScreen> {
           initialValue: session.category,
           decoration: const InputDecoration(
             labelText: 'Categoría de terreno',
-            border: OutlineInputBorder(),
           ),
           items: [
             const DropdownMenuItem<MeasurementCategory>(
@@ -466,7 +512,6 @@ class _MeasureScreenState extends ConsumerState<MeasureScreen> {
           maxLines: 2,
           decoration: const InputDecoration(
             labelText: 'Observaciones (opcional)',
-            border: OutlineInputBorder(),
           ),
           onChanged: (value) =>
               ref.read(measurementSessionProvider.notifier).setNotes(value),
@@ -475,61 +520,100 @@ class _MeasureScreenState extends ConsumerState<MeasureScreen> {
     );
   }
 
-  Widget _buildBottomBar(
-    MeasurementSessionState session,
-    bool gpsDisabled,
-  ) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed:
-                    (session.isCapturing || gpsDisabled) ? null : _capturePoint,
-                icon: session.isCapturing
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.add_location_alt),
-                label: Text(
-                  session.isCapturing
-                      ? 'Capturando... '
-                          '${(session.captureProgress * 100).round()}%'
-                      : 'Capturar punto',
+  Widget _buildBottomBar(MeasurementSessionState session, bool gpsDisabled) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
+        border: Border(
+          top: BorderSide(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
+        ),
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (session.isCapturing) ...[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: LinearProgressIndicator(
+                    value: session.captureProgress.clamp(0.0, 1.0),
+                    minHeight: 4,
+                  ),
+                ),
+                const SizedBox(height: 10),
+              ],
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: (session.isCapturing || gpsDisabled)
+                      ? null
+                      : _capturePoint,
+                  icon: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 180),
+                    child: session.isCapturing
+                        ? SizedBox(
+                            key: const ValueKey('capture-progress'),
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation(
+                                Theme.of(context).colorScheme.onPrimary,
+                              ),
+                            ),
+                          )
+                        : const Icon(
+                            Icons.add_location_alt,
+                            key: ValueKey('capture-ready'),
+                          ),
+                  ),
+                  label: Text(
+                    session.isCapturing
+                        ? 'Capturando... '
+                            '${(session.captureProgress * 100).round()}%'
+                        : 'Capturar punto',
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.tonalIcon(
-                onPressed: session.canSave ? _save : null,
-                icon: const Icon(Icons.save),
-                label: const Text('Guardar medición'),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.tonalIcon(
+                  onPressed: session.canSave ? _save : null,
+                  icon: const Icon(Icons.save),
+                  label: const Text('Guardar medición'),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _metricRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      constraints: const BoxConstraints(minWidth: 128),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colors.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(label),
+          Text(label, style: Theme.of(context).textTheme.labelSmall),
+          const SizedBox(height: 3),
           Text(
             value,
-            style: const TextStyle(fontWeight: FontWeight.w600),
+            style: Theme.of(context).textTheme.titleMedium,
           ),
         ],
       ),
@@ -539,5 +623,86 @@ class _MeasureScreenState extends ConsumerState<MeasureScreen> {
   String _formatMeters(double meters) {
     final fmt = NumberFormat('#,##0.00', 'es_CO');
     return '${fmt.format(meters)} m';
+  }
+}
+
+class _PointTimelineItem extends StatelessWidget {
+  final int index;
+  final bool isLast;
+  final double latitude;
+  final double longitude;
+  final double altitude;
+  final double accuracy;
+
+  const _PointTimelineItem({
+    required this.index,
+    required this.isLast,
+    required this.latitude,
+    required this.longitude,
+    required this.altitude,
+    required this.accuracy,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            width: 36,
+            child: Stack(
+              alignment: Alignment.topCenter,
+              children: [
+                if (!isLast)
+                  Positioned(
+                    top: 28,
+                    bottom: 0,
+                    child: Container(width: 2, color: colors.outlineVariant),
+                  ),
+                Align(
+                  alignment: Alignment.topCenter,
+                  child: CircleAvatar(
+                    radius: 14,
+                    backgroundColor: colors.primaryContainer,
+                    foregroundColor: colors.onPrimaryContainer,
+                    child: Text(
+                      '${index + 1}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Lat ${latitude.toStringAsFixed(6)}, '
+                    'Lon ${longitude.toStringAsFixed(6)}',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    'Alt ${altitude.toStringAsFixed(1)} m · '
+                    'Precisión ${accuracy.toStringAsFixed(1)} m',
+                    style: Theme.of(context).textTheme.labelSmall,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

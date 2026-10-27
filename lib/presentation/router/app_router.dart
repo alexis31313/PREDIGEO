@@ -15,32 +15,32 @@ final appRouter = GoRouter(
   routes: [
     GoRoute(
       path: '/',
-      builder: (BuildContext context, GoRouterState state) {
-        return const HomeScreen();
+      pageBuilder: (BuildContext context, GoRouterState state) {
+        return _buildPage(state, const HomeScreen());
       },
     ),
     GoRoute(
       path: '/measure',
-      builder: (BuildContext context, GoRouterState state) {
-        return const MeasureScreen();
+      pageBuilder: (BuildContext context, GoRouterState state) {
+        return _buildPage(state, const MeasureScreen());
       },
     ),
     GoRoute(
       path: '/history',
-      builder: (BuildContext context, GoRouterState state) {
-        return const HistoryScreen();
+      pageBuilder: (BuildContext context, GoRouterState state) {
+        return _buildPage(state, const HistoryScreen());
       },
     ),
     GoRoute(
       path: '/evaluation',
-      builder: (BuildContext context, GoRouterState state) {
-        return const EvaluationScreen();
+      pageBuilder: (BuildContext context, GoRouterState state) {
+        return _buildPage(state, const EvaluationScreen());
       },
     ),
     GoRoute(
       path: '/gps-debug',
-      builder: (BuildContext context, GoRouterState state) {
-        return const GpsDebugScreen();
+      pageBuilder: (BuildContext context, GoRouterState state) {
+        return _buildPage(state, const GpsDebugScreen());
       },
     ),
   ],
@@ -48,3 +48,26 @@ final appRouter = GoRouter(
     return null;
   },
 );
+
+CustomTransitionPage<void> _buildPage(GoRouterState state, Widget child) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final curvedAnimation = CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOutCubic,
+      );
+      return FadeTransition(
+        opacity: curvedAnimation,
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0.02, 0),
+            end: Offset.zero,
+          ).animate(curvedAnimation),
+          child: child,
+        ),
+      );
+    },
+  );
+}
