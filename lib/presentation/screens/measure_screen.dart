@@ -5,6 +5,8 @@
 // altitud) y guardar la medición localmente en SQLite. Toda la captura y el
 // cálculo funcionan sin conexión a internet.
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -39,19 +41,41 @@ class _MeasureScreenState extends ConsumerState<MeasureScreen> {
   final _nameController = TextEditingController();
   final _notesController = TextEditingController();
 
+  /// Temporizador de captura automática de puntos (cada 20 segundos).
+  Timer? _autoCaptureTimer;
+
+  /// Indica si la captura automática está activa en esta pantalla.
+  bool _autoCaptureActive = false;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(gpsStateNotifierProvider.notifier).start();
     });
+    _autoCaptureTimer = Timer.periodic(
+      const Duration(seconds: 20),
+      (_) => _autoCaptureTick(),
+    );
+    _autoCaptureActive = true;
   }
 
   @override
   void dispose() {
+    _autoCaptureTimer?.cancel();
     _nameController.dispose();
     _notesController.dispose();
     super.dispose();
+  }
+
+  /// Ejecuta una captura de punto automática (timer periodico de 20 segundos).
+  void _autoCaptureTick() {
+    if (!mounted) return;
+    final session = ref.read(measurementSessionProvider);
+    if (session.isCapturing) return;
+    final reading = ref.read(gpsReadingStreamProvider).asData?.value;
+    if (reading == null) return;
+    _capturePoint();
   }
 
   Future<void> _capturePoint() async {
@@ -109,6 +133,13 @@ class _MeasureScreenState extends ConsumerState<MeasureScreen> {
       await ref
           .read(measurementHistoryActionsProvider.notifier)
           .save(measurement);
+
+      _autoCaptureTimer?.cancel();
+      if (mounted) {
+        setState(() {
+          _autoCaptureActive = false;
+        });
+      }
 
       if (!mounted) return;
       ref.read(measurementSessionProvider.notifier).reset();
@@ -249,13 +280,43 @@ class _MeasureScreenState extends ConsumerState<MeasureScreen> {
   }
 
   Widget _buildCaptureParams(CaptureSettings settings) {
-    return Text(
-      'Parámetros: ${settings.samplesPerPoint} muestras por punto · '
-      'precisión máxima ${settings.maxAccuracyM.toStringAsFixed(0)} m',
-      style: TextStyle(
-        fontSize: 12,
-        color: Theme.of(context).colorScheme.onSurfaceVariant,
-      ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Parámetros: ${settings.samplesPerPoint} muestras por punto · '
+          'precisión máxima ${settings.maxAccuracyM.toStringAsFixed(0)} m',
+          style: TextStyle(
+            fontSize: 12,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Icon(
+              _autoCaptureActive
+                  ? Icons.timer
+                  : Icons.timer_outlined,
+              size: 16,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                _autoCaptureActive
+                    ? 'Captura automática activa: un punto cada 20 segundos'
+                    : 'Captura automática desactivada',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 

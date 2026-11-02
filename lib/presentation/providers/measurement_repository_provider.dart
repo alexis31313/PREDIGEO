@@ -134,6 +134,27 @@ final filteredMeasurementsProvider = FutureProvider<List<Measurement>>((ref) {
       );
 });
 
+/// Mediciones del historial con sus evaluaciones de campo ya cargadas.
+///
+/// La pantalla de evaluación necesita tanto los resultados de la medición
+/// (área/distancia) como las evaluaciones asociadas, por lo que agrega ambas
+/// en una sola fuente de datos.
+final measurementsWithEvaluationsProvider = FutureProvider<List<Measurement>>(
+  (ref) async {
+    final repository = ref.watch(measurementRepositoryProvider);
+    final measurements = await repository.getAll();
+
+    final result = <Measurement>[];
+    for (final measurement in measurements) {
+      final evaluations = measurement.id == null
+          ? const <FieldEvaluation>[]
+          : await repository.getEvaluations(measurement.id!);
+      result.add(measurement.copyWith(evaluations: evaluations));
+    }
+    return result;
+  },
+);
+
 /// Evaluaciones de campo de una medición.
 final fieldEvaluationsProvider =
     FutureProvider.family<List<FieldEvaluation>, int>(
