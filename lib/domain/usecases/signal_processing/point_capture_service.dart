@@ -42,34 +42,17 @@ class PointCaptureService {
     void Function(double progress)? onProgress,
   }) async {
     final validReadings = <GpsReading>[];
-    final completer = Completer<CapturedPoint>();
+    var totalReadings = 0;
+    var lastAccuracy = 0.0;
+    final stopwatch = Stopwatch()..start();
 
-    late StreamSubscription subscription;
-    Timer? timeoutTimer;
-
-    timeoutTimer = Timer(timeout, () {
-      if (!completer.isCompleted) {
-        subscription.cancel();
-        if (validReadings.length < 3) {
-          completer.completeError(
-            InsufficientSamplesException(
-              'No se obtuvieron suficientes muestras válidas. '
-              'Se obtuvieron ${validReadings.length}, se requieren al menos 3. '
-              'Verifique la señal GPS e intente nuevamente.',
-            ),
-          );
-        } else {
-          completer.complete(_buildCapturedPoint(validReadings));
-        }
-      }
-    });
-
-    subscription = locationService.getReadingStream().listen(
-      (reading) {
-        if (completer.isCompleted) return;
+    while (validReadings.length < samples && stopwatch.elapsed < timeout) {
+      try {
+        final reading = await locationService.getCurrentReading();
+        totalReadings++;
+        lastAccuracy = reading.horizontalAccuracy;
 
         final previous = validReadings.isEmpty ? null : validReadings.last;
-
         if (outlierFilter.filterSingle(reading, previous)) {
           var filtered = reading;
           if (kalmanFilter != null) {
@@ -80,48 +63,39 @@ class PointCaptureService {
           onProgress?.call(
             (validReadings.length / samples).clamp(0.0, 1.0),
           );
+        }
+      } catch (_) {
+        // Ignorar errores individuales y reintentar en el siguiente ciclo.
+      }
 
-          if (validReadings.length >= samples) {
-            timeoutTimer?.cancel();
-            subscription.cancel();
-            if (!completer.isCompleted) {
-              completer.complete(_buildCapturedPoint(validReadings));
-            }
-          }
-        }
-      },
-      onError: (error) {
-        timeoutTimer?.cancel();
-        if (!completer.isCompleted) {
-          completer.completeError(
-            InsufficientSamplesException(
-              'Error durante la captura de muestras: $error',
-            ),
-          );
-        }
-      },
-      onDone: () {
-        // El stream puede terminar de forma natural antes de alcanzar el
-        // número de muestras solicitado (por ejemplo, si hay pocas lecturas
-        // válidas). En ese caso se finaliza la captura de inmediato en lugar
-        // de esperar en vano a que se agote el tiempo de espera.
-        timeoutTimer?.cancel();
-        if (completer.isCompleted) return;
-        if (validReadings.length < 3) {
-          completer.completeError(
-            InsufficientSamplesException(
-              'No se obtuvieron suficientes muestras válidas. '
-              'Se obtuvieron ${validReadings.length}, se requieren al menos 3. '
-              'Verifique la señal GPS e intente nuevamente.',
-            ),
-          );
-        } else {
-          completer.complete(_buildCapturedPoint(validReadings));
-        }
-      },
-    );
+      if (validReadings.length < samples && stopwatch.elapsed < timeout) {
+        await Future.delayed(const Duration(seconds: 1));
+      }
+    }
 
-    return completer.future;
+    if (validReadings.length < 3) {
+      throw InsufficientSamplesException(
+        _insufficientMessage(validReadings.length, totalReadings, lastAccuracy),
+      );
+    }
+
+    return _buildCapturedPoint(validReadings);
+  }
+
+  String _insufficientMessage(int valid, int total, double lastAccuracy) {
+    if (total == 0) {
+      return 'No se recibieron lecturas GPS. '
+          'Verifique que el GPS esté activo y que la aplicación tenga '
+          'permiso de ubicación, luego intente de nuevo.';
+    }
+    if (valid == 0) {
+      return 'Se recibieron $total lecturas GPS pero ninguna con precisión '
+          'suficiente (última: ${lastAccuracy.toStringAsFixed(1)} m, '
+          'umbral 20 m). Salga a un sitio despejado e intente de nuevo.';
+    }
+    return 'No se obtuvieron suficientes muestras válidas. '
+        'Se obtuvieron $valid de $total, se requieren al menos 3. '
+        'Verifique la señal GPS e intente nuevamente.';
   }
 
   CapturedPoint _buildCapturedPoint(List<GpsReading> readings) {

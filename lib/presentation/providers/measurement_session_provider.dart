@@ -26,6 +26,10 @@ class MeasurementSessionState {
   /// Puntos ya capturados, en orden de captura (el `seq` es su índice).
   final List<GeoPoint> points;
 
+  /// Puntos capturados en el interior del área (solo para la vista 3D).
+  /// No forman parte del polígono ni del cálculo de área.
+  final List<GeoPoint> interiorPoints;
+
   /// Categoría de terreno seleccionada. `null` si aún no se clasificó.
   final MeasurementCategory? category;
 
@@ -47,6 +51,7 @@ class MeasurementSessionState {
   const MeasurementSessionState({
     this.type = MeasurementType.area,
     this.points = const <GeoPoint>[],
+    this.interiorPoints = const <GeoPoint>[],
     this.category,
     this.name = '',
     this.notes = '',
@@ -54,6 +59,9 @@ class MeasurementSessionState {
     this.captureProgress = 0.0,
     this.errorMessage,
   });
+
+  /// Todos los puntos (contorno + interior) para la vista 3D.
+  List<GeoPoint> get allPoints => [...points, ...interiorPoints];
 
   /// Cantidad de puntos capturados.
   int get pointCount => points.length;
@@ -102,6 +110,7 @@ class MeasurementSessionState {
   MeasurementSessionState copyWith({
     MeasurementType? type,
     List<GeoPoint>? points,
+    List<GeoPoint>? interiorPoints,
     MeasurementCategory? category,
     String? name,
     String? notes,
@@ -114,6 +123,7 @@ class MeasurementSessionState {
     return MeasurementSessionState(
       type: type ?? this.type,
       points: points ?? this.points,
+      interiorPoints: interiorPoints ?? this.interiorPoints,
       category: clearCategory ? null : (category ?? this.category),
       name: name ?? this.name,
       notes: notes ?? this.notes,
@@ -157,6 +167,33 @@ class MeasurementSessionNotifier extends Notifier<MeasurementSessionState> {
   void updateCaptureProgress(double progress) {
     if (!state.isCapturing) return;
     state = state.copyWith(captureProgress: progress.clamp(0.0, 1.0));
+  }
+
+  /// Añade un punto capturado al interior del área (solo para vista 3D).
+  /// No afecta el cálculo del área ni el polígono.
+  void addInteriorPoint(CapturedPoint captured) {
+    final point = GeoPoint(
+      seq: state.points.length + state.interiorPoints.length,
+      latitude: captured.latitude,
+      longitude: captured.longitude,
+      altitude: captured.altitude,
+      accuracy: captured.estimatedAccuracy,
+      timestamp: captured.timestamp,
+    );
+    state = state.copyWith(
+      interiorPoints: [...state.interiorPoints, point],
+      isCapturing: false,
+      captureProgress: 0.0,
+      clearError: true,
+    );
+  }
+
+  /// Limpia los puntos interiores capturados.
+  void clearInteriorPoints() {
+    state = state.copyWith(
+      interiorPoints: const <GeoPoint>[],
+      clearError: true,
+    );
   }
 
   /// Añade un punto capturado al final de la lista y cierra la captura.

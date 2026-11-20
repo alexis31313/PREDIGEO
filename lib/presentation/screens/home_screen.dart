@@ -7,11 +7,67 @@ import '../providers/connectivity_provider.dart';
 import '../providers/gps_state_notifier.dart';
 import '../widgets/signal_indicator.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkConnection());
+  }
+
+  /// Al iniciar la aplicación, intenta conectarse a internet. Si no logra
+  /// establecer la conexión, muestra un diálogo que ofrece continuar sin
+  /// conexión o reintentar la conexión.
+  Future<void> _checkConnection() async {
+    var isOnline = true;
+    try {
+      isOnline = await ref.read(isConnectedProvider.future);
+    } catch (_) {
+      // Ante un error consultando la red se asume modo sin conexión.
+      isOnline = false;
+    }
+
+    if (!mounted) return;
+    if (isOnline) return;
+
+    final proceedOffline = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Sin conexión a internet'),
+        content: const Text(
+          'No se pudo establecer conexión con internet. Puedes continuar '
+          'usando PrediGeo sin conexión o intentar reconectar.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Intentar reconectar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Usar sin internet'),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted) return;
+    if (proceedOffline == true) {
+      // El usuario eligió operar sin internet: la app continúa en modo offline.
+      return;
+    }
+    // El usuario eligió "Intentar reconectar": se vuelve a verificar.
+    await _checkConnection();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final isOnline = ref.watch(isOnlineProvider);
     final reading = ref.watch(gpsReadingStreamProvider).asData?.value;
@@ -85,7 +141,7 @@ class HomeScreen extends ConsumerWidget {
                   _StatusPill(
                     icon: isOnline ? Icons.cloud_done_outlined : Icons.wifi_off,
                     child: Text(
-                      'Funciona sin conexión',
+                      isOnline ? 'Conectado' : 'Desconectado',
                       style: Theme.of(context).textTheme.labelMedium,
                     ),
                   ),

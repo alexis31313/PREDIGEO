@@ -222,10 +222,43 @@ Conversión a unidades usadas en Colombia:
 - 1 plaza = 6 400 m²
 - 1 cuadra = 6 400 m² (uso regional)
 
-## 7. Consideraciones de Seguridad y Privacidad
+## 8. Vista 3D del relieve (offline)
 
-- Los datos GPS se almacenan únicamente en el dispositivo del usuario
-- No se transmiten datos a servidores externos sin consentimiento explícito
-- Se cumple con la Ley 1581 de 2012 de protección de datos personales
-- Se incluye política de privacidad accesible desde la aplicación
-- Se permite la eliminación total de datos almacenados
+PrediGeo genera una superficie de terreno en 3D de forma **local**, a partir
+de los puntos GNSS capturados (latitud, longitud y altitud), sin depender de
+servicios externos ni de un modelo digital de elevación (DEM).
+
+### 8.1 Generación de la superficie
+
+1. Se descartan los puntos con precisión horizontal mayor a 20 m o con
+   altitud no válida (`NaN` / infinito).
+2. Si quedan menos de 3 puntos válidos se devuelve un resultado de tipo
+   `track` (fallback a línea/trayecto) o `unavailable` (sin superficie).
+3. Los puntos se proyectan al plano en metros mediante `GeoProjector`
+   (centroide como origen) y se verifica que no sean colineales.
+4. Se calcula la altitud relativa al punto más bajo del recorrido.
+5. Se triangula la nube de puntos con Delaunay (Bowyer-Watson) en Dart puro,
+   generando una malla TIN (triangulated irregular network).
+6. La malla se renderiza con un `CustomPainter` propio, coloreando cada
+   triángulo por altura (paleta hipsométrica) y añadiendo un sombreado simple
+   por orientación.
+
+### 8.2 Limitaciones de precisión vertical
+
+- La altitud reportada por el GPS del dispositivo tiene **menor precisión**
+  que la posición horizontal (típicamente ±5 a ±15 m en campo abierto).
+- La superficie es una **representación aproximada** del relieve real: no
+  sustituye un levantamiento topográfico ni un DEM.
+- Por eso la aplicación muestra siempre el aviso:
+  *"Representación aproximada: la altitud del GPS tiene menor precisión que la
+  horizontal"*.
+- El control de exageración vertical (1x, 2x, 5x, 10x) permite hacer visible
+  el relieve en terrenos casi planos, pero no aumenta la precisión real.
+
+### 8.3 Funcionamiento sin internet
+
+- La vista 3D se calcula y renderiza completamente en el dispositivo.
+- No requiere conexión, mapas base ni claves de API.
+- Está disponible tanto en la captura (sección de relieve sin conexión) como
+  en el detalle de una medición guardada, siempre que existan puntos con
+  altitud.

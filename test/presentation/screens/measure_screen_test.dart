@@ -80,6 +80,8 @@ void main() {
         .thenAnswer((_) async => true);
     when(() => locationService.checkPermission())
         .thenAnswer((_) async => 'granted');
+    when(() => locationService.requestPermission())
+        .thenAnswer((_) async => 'granted');
     when(() => locationService.getCurrentReading())
         .thenAnswer((_) async => reading);
     when(() => locationService.getReadingStream())

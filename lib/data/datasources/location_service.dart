@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -122,10 +123,24 @@ class LocationService {
   /// de Android con notificación en primer plano.
   Stream<GpsReading> getReadingStream() {
     try {
-      const locationSettings = LocationSettings(
-        accuracy: LocationAccuracy.best,
-        distanceFilter: 0,
-      );
+      final LocationSettings locationSettings;
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        locationSettings = AndroidSettings(
+          accuracy: LocationAccuracy.best,
+          distanceFilter: 0,
+          intervalDuration: const Duration(seconds: 1),
+          foregroundNotificationConfig: const ForegroundNotificationConfig(
+            notificationTitle: 'PrediGeo',
+            notificationText: 'Capturando ubicación GPS...',
+            enableWakeLock: true,
+          ),
+        );
+      } else {
+        locationSettings = const LocationSettings(
+          accuracy: LocationAccuracy.best,
+          distanceFilter: 0,
+        );
+      }
 
       return Geolocator.getPositionStream(
         locationSettings: locationSettings,

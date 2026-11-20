@@ -5,6 +5,8 @@
 // altitud) y guardar la medición localmente en SQLite. Toda la captura y el
 // cálculo funcionan sin conexión a internet.
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -39,25 +41,71 @@ class _MeasureScreenState extends ConsumerState<MeasureScreen> {
   final _nameController = TextEditingController();
   final _notesController = TextEditingController();
 
+  /// Temporizador de captura automática de puntos (cada 20 segundos).
+  Timer? _autoCaptureTimer;
+
+  /// Indica si la captura automática está activa en esta pantalla.
+  bool _autoCaptureActive = false;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(gpsStateNotifierProvider.notifier).start();
     });
+    _autoCaptureTimer = Timer.periodic(
+      const Duration(seconds: 20),
+      (_) => _autoCaptureTick(),
+    );
+    _autoCaptureActive = true;
   }
 
   @override
   void dispose() {
+    _autoCaptureTimer?.cancel();
     _nameController.dispose();
     _notesController.dispose();
     super.dispose();
+  }
+
+  /// Ejecuta una captura de punto automática (timer periodico de 20 segundos).
+  void _autoCaptureTick() {
+    if (!mounted) return;
+    final session = ref.read(measurementSessionProvider);
+    if (session.isCapturing) return;
+    final reading = ref.read(gpsReadingStreamProvider).asData?.value;
+    if (reading == null) return;
+    _capturePoint();
   }
 
   Future<void> _capturePoint() async {
     final settings = ref.read(captureSettingsProvider);
     final notifier = ref.read(measurementSessionProvider.notifier);
     final wakeLock = ref.read(wakeLockServiceProvider);
+    final locationService = ref.read(locationServiceProvider);
+
+    // Verificar servicio GPS y permisos antes de intentar capturar.
+    try {
+      final enabled = await locationService.isServiceEnabled();
+      if (!enabled) {
+        notifier.failCapture(
+          'El servicio de ubicación (GPS) está deshabilitado. '
+          'Actívelo en la configuración del dispositivo e intente de nuevo.',
+        );
+        return;
+      }
+      final permission = await locationService.requestPermission();
+      if (permission != 'granted') {
+        notifier.failCapture(
+          'La aplicación no tiene permiso de ubicación. '
+          'Concédelo en la configuración de la aplicación.',
+        );
+        return;
+      }
+    } catch (e) {
+      notifier.failCapture('No se pudo verificar el GPS: $e');
+      return;
+    }
 
     notifier.startCapture();
     await wakeLock.enable();
@@ -77,6 +125,63 @@ class _MeasureScreenState extends ConsumerState<MeasureScreen> {
         );
       } else {
         notifier.addCapturedPoint(captured);
+        await HapticFeedback.mediumImpact();
+      }
+    } on InsufficientSamplesException catch (e) {
+      notifier.failCapture(e.message);
+    } catch (e) {
+      notifier.failCapture('No se pudo capturar el punto: $e');
+    } finally {
+      await wakeLock.disable();
+    }
+  }
+
+  Future<void> _captureInteriorPoint() async {
+    final settings = ref.read(captureSettingsProvider);
+    final notifier = ref.read(measurementSessionProvider.notifier);
+    final wakeLock = ref.read(wakeLockServiceProvider);
+    final locationService = ref.read(locationServiceProvider);
+
+    try {
+      final enabled = await locationService.isServiceEnabled();
+      if (!enabled) {
+        notifier.failCapture(
+          'El servicio de ubicación (GPS) está deshabilitado. '
+          'Actívelo en la configuración del dispositivo e intente de nuevo.',
+        );
+        return;
+      }
+      final permission = await locationService.requestPermission();
+      if (permission != 'granted') {
+        notifier.failCapture(
+          'La aplicación no tiene permiso de ubicación. '
+          'Concédelo en la configuración de la aplicación.',
+        );
+        return;
+      }
+    } catch (e) {
+      notifier.failCapture('No se pudo verificar el GPS: $e');
+      return;
+    }
+
+    notifier.startCapture();
+    await wakeLock.enable();
+    try {
+      final captured = await ref.read(pointCaptureServiceProvider).capturePoint(
+            samples: settings.samplesPerPoint,
+            timeout: settings.timeout,
+            onProgress: notifier.updateCaptureProgress,
+          );
+
+      if (captured.estimatedAccuracy > settings.maxAccuracyM) {
+        notifier.failCapture(
+          'Punto descartado: precisión de '
+          '${captured.estimatedAccuracy.toStringAsFixed(1)} m, superior al '
+          'umbral de ${settings.maxAccuracyM.toStringAsFixed(0)} m. '
+          'Acérquese a un sitio despejado e intente de nuevo.',
+        );
+      } else {
+        notifier.addInteriorPoint(captured);
         await HapticFeedback.mediumImpact();
       }
     } on InsufficientSamplesException catch (e) {
@@ -109,6 +214,13 @@ class _MeasureScreenState extends ConsumerState<MeasureScreen> {
       await ref
           .read(measurementHistoryActionsProvider.notifier)
           .save(measurement);
+
+      _autoCaptureTimer?.cancel();
+      if (mounted) {
+        setState(() {
+          _autoCaptureActive = false;
+        });
+      }
 
       if (!mounted) return;
       ref.read(measurementSessionProvider.notifier).reset();
@@ -249,13 +361,43 @@ class _MeasureScreenState extends ConsumerState<MeasureScreen> {
   }
 
   Widget _buildCaptureParams(CaptureSettings settings) {
-    return Text(
-      'Parámetros: ${settings.samplesPerPoint} muestras por punto · '
-      'precisión máxima ${settings.maxAccuracyM.toStringAsFixed(0)} m',
-      style: TextStyle(
-        fontSize: 12,
-        color: Theme.of(context).colorScheme.onSurfaceVariant,
-      ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Parámetros: ${settings.samplesPerPoint} muestras por punto · '
+          'precisión máxima ${settings.maxAccuracyM.toStringAsFixed(0)} m',
+          style: TextStyle(
+            fontSize: 12,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Icon(
+              _autoCaptureActive
+                  ? Icons.timer
+                  : Icons.timer_outlined,
+              size: 16,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                _autoCaptureActive
+                    ? 'Captura automática activa: un punto cada 20 segundos'
+                    : 'Captura automática desactivada',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -391,6 +533,7 @@ class _MeasureScreenState extends ConsumerState<MeasureScreen> {
                 child: MeasurementMapSection(
                   key: ValueKey(session.type),
                   points: session.points,
+                  interiorPoints: session.interiorPoints,
                   closePolygon: session.type == MeasurementType.area,
                 ),
               ),
@@ -580,6 +723,24 @@ class _MeasureScreenState extends ConsumerState<MeasureScreen> {
                 ),
               ),
               const SizedBox(height: 8),
+              if (session.hasEnoughPoints) ...[
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: (session.isCapturing || gpsDisabled)
+                        ? null
+                        : _captureInteriorPoint,
+                    icon: const Icon(Icons.landscape),
+                    label: Text(
+                      session.isCapturing
+                          ? 'Muestreando... '
+                              '${(session.captureProgress * 100).round()}%'
+                          : 'Muestrear interior (3D)',
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.tonalIcon(

@@ -3,16 +3,41 @@
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../screens/home_screen.dart';
 import '../screens/measure_screen.dart';
 import '../screens/history_screen.dart';
+import '../screens/measurement_detail_screen.dart';
 import '../screens/evaluation_screen.dart';
 import '../screens/gps_debug_screen.dart';
+import '../screens/onboarding_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/',
+  redirect: (BuildContext context, GoRouterState state) async {
+    // Onboarding: solo se muestra la primera vez (valor persistido en
+    // SharedPreferences). Si ya fue visto, se navega directamente a la home.
+    final prefs = await SharedPreferences.getInstance();
+    final seen = prefs.getBool('onboarding_seen') ?? false;
+    if (!seen) {
+      // Primera ejecución: mostrar onboarding; si ya está en /onboarding,
+      // no redirigir (evita bucle).
+      if (state.matchedLocation == '/onboarding') return null;
+      return '/onboarding';
+    }
+    if (state.matchedLocation == '/onboarding') {
+      return '/';
+    }
+    return null;
+  },
   routes: [
+    GoRoute(
+      path: '/onboarding',
+      pageBuilder: (BuildContext context, GoRouterState state) {
+        return _buildPage(state, const OnboardingScreen());
+      },
+    ),
     GoRoute(
       path: '/',
       pageBuilder: (BuildContext context, GoRouterState state) {
@@ -32,6 +57,13 @@ final appRouter = GoRouter(
       },
     ),
     GoRoute(
+      path: '/history/:id',
+      pageBuilder: (BuildContext context, GoRouterState state) {
+        final id = int.tryParse(state.pathParameters['id'] ?? '');
+        return _buildPage(state, MeasurementDetailScreen(id: id ?? 0));
+      },
+    ),
+    GoRoute(
       path: '/evaluation',
       pageBuilder: (BuildContext context, GoRouterState state) {
         return _buildPage(state, const EvaluationScreen());
@@ -44,9 +76,6 @@ final appRouter = GoRouter(
       },
     ),
   ],
-  redirect: (BuildContext context, GoRouterState state) {
-    return null;
-  },
 );
 
 CustomTransitionPage<void> _buildPage(GoRouterState state, Widget child) {
