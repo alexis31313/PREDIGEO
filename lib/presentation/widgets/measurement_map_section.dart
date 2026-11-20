@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/geo_point.dart';
 import '../providers/connectivity_provider.dart';
 import 'measurement_map_view.dart';
-import 'terrain_relief_view.dart';
+import 'terrain_relief_toggle_view.dart';
 
 /// Sección que alterna automáticamente entre el mapa de OpenStreetMap (modo
 /// conectado) y la vista de relieve local (modo sin conexión).
@@ -12,15 +12,22 @@ import 'terrain_relief_view.dart';
 /// La conmutación es transparente para la pantalla que la usa: basta con
 /// proporcionar los puntos. [mapBuilder] permite inyectar una vista de mapa
 /// alternativa (usada en las pruebas para no depender de la plataforma).
+///
+/// En modo sin conexión se puede alternar entre la vista plana (2D) y la vista
+/// 3D generada localmente desde los puntos capturados.
 class MeasurementMapSection extends ConsumerWidget {
   final List<GeoPoint> points;
+  final List<GeoPoint> interiorPoints;
   final bool closePolygon;
+  final double maxAccuracy;
   final Widget Function(List<GeoPoint> points, bool closePolygon)? mapBuilder;
 
   const MeasurementMapSection({
     super.key,
     required this.points,
+    this.interiorPoints = const <GeoPoint>[],
     this.closePolygon = true,
+    this.maxAccuracy = 20.0,
     this.mapBuilder,
   });
 
@@ -30,7 +37,12 @@ class MeasurementMapSection extends ConsumerWidget {
     final content = isOnline
         ? mapBuilder?.call(points, closePolygon) ??
             MeasurementMapView(points: points, closePolygon: closePolygon)
-        : _OfflineRelief(points: points, closePolygon: closePolygon);
+        : _OfflineRelief(
+            points: points,
+            interiorPoints: interiorPoints,
+            closePolygon: closePolygon,
+            maxAccuracy: maxAccuracy,
+          );
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 280),
       child: KeyedSubtree(
@@ -43,9 +55,16 @@ class MeasurementMapSection extends ConsumerWidget {
 
 class _OfflineRelief extends StatelessWidget {
   final List<GeoPoint> points;
+  final List<GeoPoint> interiorPoints;
   final bool closePolygon;
+  final double maxAccuracy;
 
-  const _OfflineRelief({required this.points, required this.closePolygon});
+  const _OfflineRelief({
+    required this.points,
+    this.interiorPoints = const <GeoPoint>[],
+    required this.closePolygon,
+    required this.maxAccuracy,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -74,7 +93,12 @@ class _OfflineRelief extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Expanded(
-          child: TerrainReliefView(points: points, closePolygon: closePolygon),
+          child: TerrainReliefToggleView(
+            points: points,
+            interiorPoints: interiorPoints,
+            closePolygon: closePolygon,
+            maxAccuracy: maxAccuracy,
+          ),
         ),
       ],
     );

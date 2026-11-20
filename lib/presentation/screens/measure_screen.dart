@@ -82,6 +82,30 @@ class _MeasureScreenState extends ConsumerState<MeasureScreen> {
     final settings = ref.read(captureSettingsProvider);
     final notifier = ref.read(measurementSessionProvider.notifier);
     final wakeLock = ref.read(wakeLockServiceProvider);
+    final locationService = ref.read(locationServiceProvider);
+
+    // Verificar servicio GPS y permisos antes de intentar capturar.
+    try {
+      final enabled = await locationService.isServiceEnabled();
+      if (!enabled) {
+        notifier.failCapture(
+          'El servicio de ubicación (GPS) está deshabilitado. '
+          'Actívelo en la configuración del dispositivo e intente de nuevo.',
+        );
+        return;
+      }
+      final permission = await locationService.requestPermission();
+      if (permission != 'granted') {
+        notifier.failCapture(
+          'La aplicación no tiene permiso de ubicación. '
+          'Concédelo en la configuración de la aplicación.',
+        );
+        return;
+      }
+    } catch (e) {
+      notifier.failCapture('No se pudo verificar el GPS: $e');
+      return;
+    }
 
     notifier.startCapture();
     await wakeLock.enable();
@@ -101,6 +125,63 @@ class _MeasureScreenState extends ConsumerState<MeasureScreen> {
         );
       } else {
         notifier.addCapturedPoint(captured);
+        await HapticFeedback.mediumImpact();
+      }
+    } on InsufficientSamplesException catch (e) {
+      notifier.failCapture(e.message);
+    } catch (e) {
+      notifier.failCapture('No se pudo capturar el punto: $e');
+    } finally {
+      await wakeLock.disable();
+    }
+  }
+
+  Future<void> _captureInteriorPoint() async {
+    final settings = ref.read(captureSettingsProvider);
+    final notifier = ref.read(measurementSessionProvider.notifier);
+    final wakeLock = ref.read(wakeLockServiceProvider);
+    final locationService = ref.read(locationServiceProvider);
+
+    try {
+      final enabled = await locationService.isServiceEnabled();
+      if (!enabled) {
+        notifier.failCapture(
+          'El servicio de ubicación (GPS) está deshabilitado. '
+          'Actívelo en la configuración del dispositivo e intente de nuevo.',
+        );
+        return;
+      }
+      final permission = await locationService.requestPermission();
+      if (permission != 'granted') {
+        notifier.failCapture(
+          'La aplicación no tiene permiso de ubicación. '
+          'Concédelo en la configuración de la aplicación.',
+        );
+        return;
+      }
+    } catch (e) {
+      notifier.failCapture('No se pudo verificar el GPS: $e');
+      return;
+    }
+
+    notifier.startCapture();
+    await wakeLock.enable();
+    try {
+      final captured = await ref.read(pointCaptureServiceProvider).capturePoint(
+            samples: settings.samplesPerPoint,
+            timeout: settings.timeout,
+            onProgress: notifier.updateCaptureProgress,
+          );
+
+      if (captured.estimatedAccuracy > settings.maxAccuracyM) {
+        notifier.failCapture(
+          'Punto descartado: precisión de '
+          '${captured.estimatedAccuracy.toStringAsFixed(1)} m, superior al '
+          'umbral de ${settings.maxAccuracyM.toStringAsFixed(0)} m. '
+          'Acérquese a un sitio despejado e intente de nuevo.',
+        );
+      } else {
+        notifier.addInteriorPoint(captured);
         await HapticFeedback.mediumImpact();
       }
     } on InsufficientSamplesException catch (e) {
@@ -452,6 +533,7 @@ class _MeasureScreenState extends ConsumerState<MeasureScreen> {
                 child: MeasurementMapSection(
                   key: ValueKey(session.type),
                   points: session.points,
+                  interiorPoints: session.interiorPoints,
                   closePolygon: session.type == MeasurementType.area,
                 ),
               ),
@@ -641,6 +723,24 @@ class _MeasureScreenState extends ConsumerState<MeasureScreen> {
                 ),
               ),
               const SizedBox(height: 8),
+              if (session.hasEnoughPoints) ...[
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: (session.isCapturing || gpsDisabled)
+                        ? null
+                        : _captureInteriorPoint,
+                    icon: const Icon(Icons.landscape),
+                    label: Text(
+                      session.isCapturing
+                          ? 'Muestreando... '
+                              '${(session.captureProgress * 100).round()}%'
+                          : 'Muestrear interior (3D)',
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.tonalIcon(

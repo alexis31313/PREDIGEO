@@ -7,6 +7,7 @@ import '../../domain/entities/field_evaluation.dart';
 import '../../domain/entities/measurement.dart';
 import '../../domain/entities/measurement_enums.dart';
 import '../providers/measurement_repository_provider.dart';
+import '../widgets/terrain_relief_toggle_view.dart';
 
 /// Detalle de una medición guardada: cabecera, resultados, puntos y evaluaciones.
 ///
@@ -97,6 +98,31 @@ class _DetailContent extends ConsumerWidget {
           const SizedBox(height: 12),
           _MeasurementStats(measurement: measurement),
           const SizedBox(height: 12),
+          if (measurement.points.isNotEmpty) ...[
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Relieve del terreno',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      height: 260,
+                      child: TerrainReliefToggleView(
+                        points: measurement.points,
+                        closePolygon: measurement.isArea,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
           evaluations.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (error, _) => _DetailErrorView(message: error.toString()),

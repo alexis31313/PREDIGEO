@@ -75,6 +75,12 @@ class GpsStateNotifier extends StateNotifier<LocationStatus> {
     _locationService.stopTracking();
     state = const Acquiring();
   }
+
+  @override
+  void dispose() {
+    _locationService.stopTracking();
+    super.dispose();
+  }
 }
 
 /// Proveedor principal del estado de ubicación GPS.

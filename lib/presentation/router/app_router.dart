@@ -21,9 +21,10 @@ final appRouter = GoRouter(
     final prefs = await SharedPreferences.getInstance();
     final seen = prefs.getBool('onboarding_seen') ?? false;
     if (!seen) {
-      // Si no ha visto el onboarding, cualquier pantalla (incluida la home)
-      // redirige a '/onboarding'.
-      return state.matchedLocation == '/onboarding' ? '/' : '/onboarding';
+      // Primera ejecución: mostrar onboarding; si ya está en /onboarding,
+      // no redirigir (evita bucle).
+      if (state.matchedLocation == '/onboarding') return null;
+      return '/onboarding';
     }
     if (state.matchedLocation == '/onboarding') {
       return '/';

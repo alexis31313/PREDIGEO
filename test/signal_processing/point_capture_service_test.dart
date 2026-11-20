@@ -36,6 +36,17 @@ void main() {
     mockLocationService = MockLocationService();
   });
 
+  /// Configura el mock para devolver las lecturas de [readings] en secuencia.
+  /// Una vez agotadas, repite la última.
+  void stubReadings(List<GpsReading> readings) {
+    var index = 0;
+    when(() => mockLocationService.getCurrentReading()).thenAnswer((_) async {
+      final reading = readings[index.clamp(0, readings.length - 1)];
+      if (index < readings.length - 1) index++;
+      return reading;
+    });
+  }
+
   group('PointCaptureService.capturePoint', () {
     test('returns CapturedPoint with correct sample count', () async {
       final readings = List.generate(
@@ -48,8 +59,7 @@ void main() {
         ),
       );
 
-      when(() => mockLocationService.getReadingStream())
-          .thenAnswer((_) => Stream.fromIterable(readings));
+      stubReadings(readings);
 
       final service = PointCaptureService(
         locationService: mockLocationService,
@@ -70,15 +80,14 @@ void main() {
         makeReading(accuracy: 60.0, secondsOffset: 1),
       ];
 
-      when(() => mockLocationService.getReadingStream())
-          .thenAnswer((_) => Stream.fromIterable(readings));
+      stubReadings(readings);
 
       final service = PointCaptureService(
         locationService: mockLocationService,
       );
 
       await expectLater(
-        service.capturePoint(samples: 5),
+        service.capturePoint(samples: 5, timeout: const Duration(seconds: 2)),
         throwsA(isA<InsufficientSamplesException>()),
       );
     });
@@ -94,8 +103,7 @@ void main() {
         ),
       );
 
-      when(() => mockLocationService.getReadingStream())
-          .thenAnswer((_) => Stream.fromIterable(readings));
+      stubReadings(readings);
 
       final service = PointCaptureService(
         locationService: mockLocationService,
@@ -112,12 +120,7 @@ void main() {
     });
 
     test('respects timeout', () async {
-      when(() => mockLocationService.getReadingStream()).thenAnswer(
-        (_) => Stream<GpsReading>.periodic(
-          const Duration(milliseconds: 100),
-          (_) => makeReading(),
-        ).take(100),
-      );
+      stubReadings([makeReading()]);
 
       final service = PointCaptureService(
         locationService: mockLocationService,
@@ -146,8 +149,7 @@ void main() {
             lat: 4.71103, lon: -74.07213, accuracy: 5.0, secondsOffset: 4),
       ];
 
-      when(() => mockLocationService.getReadingStream())
-          .thenAnswer((_) => Stream.fromIterable(readings));
+      stubReadings(readings);
 
       final service = PointCaptureService(
         locationService: mockLocationService,
