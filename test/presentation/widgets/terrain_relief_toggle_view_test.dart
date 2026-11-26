@@ -15,7 +15,7 @@ void main() {
           body: Center(
             child: SizedBox(
               width: 320,
-              height: 260,
+              height: 340,
               child: TerrainReliefToggleView(points: buildPolygonPoints()),
             ),
           ),

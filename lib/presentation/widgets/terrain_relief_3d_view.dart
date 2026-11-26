@@ -11,18 +11,19 @@ import 'relief_colors.dart';
 /// Vista 3D del relieve construida localmente a partir de la superficie TIN.
 ///
 /// No depende de red ni de DEM: se calcula desde los puntos capturados y se
-/// dibuja con un [CustomPainter] propio. Si la superficie no está disponible
-/// (unavailable o track) no se dibuja malla y se muestra un mensaje.
+/// dibuja con un [CustomPainter] propio.
 class TerrainRelief3DView extends StatefulWidget {
   final TerrainSurface surface;
   final double verticalExaggeration;
   final bool showWireframe;
+  final bool showContours;
 
   const TerrainRelief3DView({
     super.key,
     required this.surface,
     this.verticalExaggeration = 2.0,
     this.showWireframe = false,
+    this.showContours = false,
   });
 
   @override
@@ -35,6 +36,9 @@ class _TerrainRelief3DState extends State<TerrainRelief3DView> {
   double _scale = 1.0;
   double _offsetX = 0.0;
   double _offsetY = 0.0;
+  // Iluminación direccional (luz solar).
+  double _lightAzimuth = 0.8;
+  double _lightElevation = 0.9;
 
   static const double _viewDistance = 400.0;
   static const double _focalLength = 600.0;
@@ -75,6 +79,17 @@ class _TerrainRelief3DState extends State<TerrainRelief3DView> {
 
   Drag? _startManualDrag(Offset position) {
     return _ManualDrag(_onManualDragUpdate);
+  }
+
+  double _altitudeRange(TerrainSurface surface) {
+    if (surface.vertices.isEmpty) return 0;
+    var min = surface.vertices.first.altitude;
+    var max = surface.vertices.first.altitude;
+    for (final p in surface.vertices) {
+      min = math.min(min, p.altitude);
+      max = math.max(max, p.altitude);
+    }
+    return max - min;
   }
 
   @override
@@ -121,6 +136,9 @@ class _TerrainRelief3DState extends State<TerrainRelief3DView> {
                   focalLength: _focalLength,
                   viewDistance: _viewDistance,
                   showWireframe: widget.showWireframe,
+                  showContours: widget.showContours,
+                  lightAzimuth: _lightAzimuth,
+                  lightElevation: _lightElevation,
                   lowColor: theme.colorScheme.primary,
                   middleColor: theme.colorScheme.tertiary,
                   highColor: theme.colorScheme.secondary,
@@ -130,11 +148,16 @@ class _TerrainRelief3DState extends State<TerrainRelief3DView> {
               ),
             ),
           if (!available)
-            const Positioned.fill(
+            Positioned.fill(
               child: Center(
-                child: Text(
-                  'Sin superficie 3D disponible para este track.',
-                  textAlign: TextAlign.center,
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Text(
+                    surface.reason != null
+                        ? 'Sin superficie 3D disponible.\n${surface.reason}'
+                        : 'Sin superficie 3D disponible para este track.',
+                    textAlign: TextAlign.center,
+                  ),
                 ),
               ),
             ),
@@ -158,6 +181,18 @@ class _TerrainRelief3DState extends State<TerrainRelief3DView> {
                 style: const TextStyle(fontSize: 11, color: Colors.black54),
               ),
             ),
+          if (available && _altitudeRange(surface) == 0)
+            Positioned(
+              top: 58,
+              left: 8,
+              right: 72,
+              child: Text(
+                'Sin variación de altitud: superficie plana. '
+                'Capture puntos en diferentes elevaciones.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 10, color: Colors.orange),
+              ),
+            ),
           Positioned(
             top: 8,
             right: 8,
@@ -176,9 +211,9 @@ class _TerrainRelief3DState extends State<TerrainRelief3DView> {
 class _VertexProjection {
   final Offset screen;
   final double depth;
-  final double normalZ;
+  final double nx, ny, nz; // normal del vértice (para Gouraud)
 
-  const _VertexProjection(this.screen, this.depth, this.normalZ);
+  const _VertexProjection(this.screen, this.depth, this.nx, this.ny, this.nz);
 }
 
 class _ManualDrag implements Drag {
@@ -207,6 +242,9 @@ class _TerrainRelief3DPainter extends CustomPainter {
   final double focalLength;
   final double viewDistance;
   final bool showWireframe;
+  final bool showContours;
+  final double lightAzimuth;
+  final double lightElevation;
   final Color lowColor;
   final Color middleColor;
   final Color highColor;
@@ -224,6 +262,9 @@ class _TerrainRelief3DPainter extends CustomPainter {
     required this.focalLength,
     required this.viewDistance,
     required this.showWireframe,
+    required this.showContours,
+    required this.lightAzimuth,
+    required this.lightElevation,
     required this.lowColor,
     required this.middleColor,
     required this.highColor,
@@ -249,7 +290,6 @@ class _TerrainRelief3DPainter extends CustomPainter {
   }
 
   /// Proyecta un punto 3D a pantalla con perspectiva.
-  /// Retorna la posición en pantalla, la profundidad y la componente Z de la normal.
   _VertexProjection _project(GeoPoint point, GeoProjector projector, double minAltitude, Size size) {
     final projected = projector.project(point);
     final x = projected.x;
@@ -267,7 +307,7 @@ class _TerrainRelief3DPainter extends CustomPainter {
 
     final distance = viewDistance - depth;
     if (distance <= 0) {
-      return _VertexProjection(Offset(size.width / 2, size.height / 2), double.infinity, 0);
+      return _VertexProjection(Offset(size.width / 2, size.height / 2), double.infinity, 0, 0, 1);
     }
     final factor = focalLength / distance;
     return _VertexProjection(
@@ -276,21 +316,72 @@ class _TerrainRelief3DPainter extends CustomPainter {
         size.height / 2 - up * factor * scale + offsetY,
       ),
       distance,
-      cosE, // componente de iluminación
+      cosE, // nx placeholder
+      sinE, // ny placeholder
+      1.0,  // nz placeholder
     );
   }
 
-  /// Calcula la normal del triángulo para iluminación Lambert.
-  double _triangleLighting(List<Offset> screenPts, double azimuth, double elevation) {
-    // Normal simplificada: usar la componente Z de la vista.
-    // Iluminación Lambert: dot(normal, lightDir).
-    // Luz viene desde arriba-derecha (dirección fija en espacio de vista).
-    const lightX = 0.5;
-    const lightY = -0.3;
-    const lightZ = 0.8;
-    final len = math.sqrt(lightX * lightX + lightY * lightY + lightZ * lightZ);
-    // Aproximación: usar la elevación como factor de iluminación.
-    return (math.cos(elevation) * 0.6 + 0.4).clamp(0.3, 1.0);
+  /// Calcula la normal de un triángulo en espacio 3D (antes de rotación).
+  /// Retorna (nx, ny, nz) normalizados.
+  (double, double, double) _triangleNormal(List<GeoPoint> tri, GeoProjector projector, double minAltitude) {
+    final p0 = projector.project(tri[0]);
+    final p1 = projector.project(tri[1]);
+    final p2 = projector.project(tri[2]);
+    final h0 = (tri[0].altitude - minAltitude) * verticalExaggeration;
+    final h1 = (tri[1].altitude - minAltitude) * verticalExaggeration;
+    final h2 = (tri[2].altitude - minAltitude) * verticalExaggeration;
+
+    // Vectores en espacio 3D: (x, height, z)
+    final v1x = p1.x - p0.x;
+    final v1y = h1 - h0;
+    final v1z = p1.y - p0.y;
+    final v2x = p2.x - p0.x;
+    final v2y = h2 - h0;
+    final v2z = p2.y - p0.y;
+
+    // Cross product v1 × v2
+    final nx = v1y * v2z - v1z * v2y;
+    final ny = v1z * v2x - v1x * v2z;
+    final nz = v1x * v2y - v1y * v2x;
+
+    final len = math.sqrt(nx * nx + ny * ny + nz * nz);
+    if (len < 1e-12) return (0.0, 0.0, 1.0);
+    return (nx / len, ny / len, nz / len);
+  }
+
+  /// Calcula la iluminación Lambert para un triángulo.
+  double _lambert((double, double, double) normal) {
+    final (nx, ny, nz) = normal;
+    // Rotar la normal por azimut y elevación para obtener la normal en espacio de vista.
+    final cosA = math.cos(azimuth);
+    final sinA = math.sin(azimuth);
+    final cosE = math.cos(elevation);
+    final sinE = math.sin(elevation);
+
+    // Rotar normal por azimut (alrededor de Y/altura).
+    final nx1 = nx * cosA + nz * sinA;
+    final nz1 = -nx * sinA + nz * cosA;
+    final ny1 = ny;
+
+    // Rotar por elevación.
+    final nx2 = nx1;
+    final ny2 = ny1 * cosE - nz1 * sinE;
+    final nz2 = ny1 * sinE + nz1 * cosE;
+
+    // Dirección de la luz (en espacio de vista, rotada por lightAzimuth/lightElevation).
+    final lcosA = math.cos(lightAzimuth);
+    final lsinA = math.sin(lightAzimuth);
+    final lcosE = math.cos(lightElevation);
+    final lsinE = math.sin(lightElevation);
+    final lx = lsinA * lcosE;
+    final ly = lsinE;
+    final lz = lcosA * lcosE;
+
+    // Dot product normal · light.
+    final dot = nx2 * lx + ny2 * ly + nz2 * lz;
+    // Ambient + diffuse.
+    return (0.25 + 0.75 * dot.clamp(0.0, 1.0)).clamp(0.15, 1.0);
   }
 
   double _triangleDepth(List<GeoPoint> triangle, GeoProjector projector, double minAltitude) {
@@ -324,12 +415,10 @@ class _TerrainRelief3DPainter extends CustomPainter {
       high: highColor,
     );
     // Aplicar iluminación Lambert.
-    return Color.fromARGB(
-      (base.a * 255).round(),
-      (base.r * 255 * lighting).round().clamp(0, 255),
-      (base.g * 255 * lighting).round().clamp(0, 255),
-      (base.b * 255 * lighting).round().clamp(0, 255),
-    );
+    final r = (base.r * 255 * lighting).round().clamp(0, 255);
+    final g = (base.g * 255 * lighting).round().clamp(0, 255);
+    final b = (base.b * 255 * lighting).round().clamp(0, 255);
+    return Color.fromARGB((base.a * 255).round(), r, g, b);
   }
 
   void _paintLabel(Canvas canvas, String text, Offset center, Color color) {
@@ -351,14 +440,43 @@ class _TerrainRelief3DPainter extends CustomPainter {
     );
   }
 
-  void _paintGrid(Canvas canvas, Size size, GeoProjector projector, double minAltitude) {
-    // Grid simple en el plano base (z=0 en espacio de vista).
-    final paint = Paint()
-      ..color = gridColor.withValues(alpha: 0.3)
-      ..strokeWidth = 0.5
-      ..style = PaintingStyle.stroke;
-    // Dibujar líneas horizontales y verticales en el plano proyectado.
-    // Simplificado: solo borde del área de datos.
+  /// Dibuja curvas de nivel (isolíneas) sobre la malla.
+  void _paintContours(Canvas canvas, Size size, List<List<GeoPoint>> triangles,
+      GeoProjector projector, double minAltitude, double maxAltitude) {
+    if (maxAltitude <= minAltitude) return;
+    final range = maxAltitude - minAltitude;
+    final levels = 5;
+    final step = range / (levels + 1);
+
+    for (var i = 1; i <= levels; i++) {
+      final level = minAltitude + step * i;
+      final paint = Paint()
+        ..color = Colors.white.withValues(alpha: 0.4)
+        ..strokeWidth = 1.0
+        ..style = PaintingStyle.stroke;
+
+      for (final tri in triangles) {
+        // Encontrar intersecciones del nivel con los bordes del triángulo.
+        final pts = <Offset>[];
+        for (var e = 0; e < 3; e++) {
+          final a = tri[e];
+          final b = tri[(e + 1) % 3];
+          final ha = a.altitude - level;
+          final hb = b.altitude - level;
+          if ((ha >= 0 && hb < 0) || (ha < 0 && hb >= 0)) {
+            final t = ha / (ha - hb);
+            final projA = _project(a, projector, minAltitude, size);
+            final projB = _project(b, projector, minAltitude, size);
+            final ix = projA.screen.dx + (projB.screen.dx - projA.screen.dx) * t;
+            final iy = projA.screen.dy + (projB.screen.dy - projA.screen.dy) * t;
+            pts.add(Offset(ix, iy));
+          }
+        }
+        if (pts.length >= 2) {
+          canvas.drawLine(pts[0], pts[1], paint);
+        }
+      }
+    }
   }
 
   @override
@@ -367,9 +485,11 @@ class _TerrainRelief3DPainter extends CustomPainter {
     if (triangles.isEmpty) return;
 
     var minAltitude = triangles.first.first.altitude;
+    var maxAltitude = triangles.first.first.altitude;
     for (final triangle in triangles) {
       for (final point in triangle) {
         minAltitude = math.min(minAltitude, point.altitude);
+        maxAltitude = math.max(maxAltitude, point.altitude);
       }
     }
 
@@ -381,9 +501,10 @@ class _TerrainRelief3DPainter extends CustomPainter {
             .compareTo(_triangleDepth(b, projector, minAltitude)),
       );
 
-    final lighting = _triangleLighting([], azimuth, elevation);
-
     for (final triangle in sorted) {
+      final normal = _triangleNormal(triangle, projector, minAltitude);
+      final lighting = _lambert(normal);
+
       final projected = [
         for (final point in triangle) _project(point, projector, minAltitude, size),
       ];
@@ -391,7 +512,6 @@ class _TerrainRelief3DPainter extends CustomPainter {
       final v1 = projected[1].screen;
       final v2 = projected[2].screen;
 
-      // Dibujar triángulo relleno con iluminación.
       final path = Path()
         ..moveTo(v0.dx, v0.dy)
         ..lineTo(v1.dx, v1.dy)
@@ -404,7 +524,6 @@ class _TerrainRelief3DPainter extends CustomPainter {
           ..style = PaintingStyle.fill,
       );
 
-      // Wireframe.
       if (showWireframe) {
         canvas.drawPath(
           path,
@@ -415,10 +534,14 @@ class _TerrainRelief3DPainter extends CustomPainter {
         );
       }
 
-      // Etiquetas en los vértices.
       _paintLabel(canvas, '${triangle[0].seq + 1}', projected[0].screen, labelColor);
       _paintLabel(canvas, '${triangle[1].seq + 1}', projected[1].screen, labelColor);
       _paintLabel(canvas, '${triangle[2].seq + 1}', projected[2].screen, labelColor);
+    }
+
+    // Curvas de nivel.
+    if (showContours) {
+      _paintContours(canvas, size, sorted, projector, minAltitude, maxAltitude);
     }
   }
 
@@ -432,6 +555,9 @@ class _TerrainRelief3DPainter extends CustomPainter {
         oldDelegate.offsetX != offsetX ||
         oldDelegate.offsetY != offsetY ||
         oldDelegate.showWireframe != showWireframe ||
+        oldDelegate.showContours != showContours ||
+        oldDelegate.lightAzimuth != lightAzimuth ||
+        oldDelegate.lightElevation != lightElevation ||
         oldDelegate.lowColor != lowColor ||
         oldDelegate.middleColor != middleColor ||
         oldDelegate.highColor != highColor ||
