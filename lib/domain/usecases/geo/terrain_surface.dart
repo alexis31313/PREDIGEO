@@ -64,7 +64,9 @@ class TerrainSurfaceCalculator {
         kind: TerrainSurfaceKind.unavailable,
         vertices: const [],
         triangles: const [],
-        reason: 'sin puntos válidos',
+        reason: 'Sin puntos válidos. '
+            'No se obtuvieron puntos válidos. '
+            'Verifique la señal GPS y la precisión (max 20 m).',
       );
     }
 
@@ -76,7 +78,7 @@ class TerrainSurfaceCalculator {
         kind: kind,
         vertices: List<GeoPoint>.of(valid),
         triangles: const [],
-        reason: kind == TerrainSurfaceKind.track ? null : 'pocos puntos',
+        reason: kind == TerrainSurfaceKind.track ? null : 'Se necesitan al menos 3 puntos no alineados.',
       );
     }
 
@@ -87,7 +89,8 @@ class TerrainSurfaceCalculator {
         kind: TerrainSurfaceKind.unavailable,
         vertices: const [],
         triangles: const [],
-        reason: 'puntos colineales',
+        reason: 'Los puntos están alineados o coincidentes (colineales). '
+            'Camine y capture puntos en diferentes ubicaciones.',
       );
     }
 
@@ -127,6 +130,16 @@ class TerrainSurfaceCalculator {
 
   bool _isCollinear(List<Point2D> points) {
     if (points.length < 3) return true;
+    // Verificar si todos los puntos son coincidentes.
+    var allSame = true;
+    for (var i = 1; i < points.length; i++) {
+      if ((points[i].x - points[0].x).abs() > 1e-9 ||
+          (points[i].y - points[0].y).abs() > 1e-9) {
+        allSame = false;
+        break;
+      }
+    }
+    if (allSame) return true;
     final p0 = points[0];
     var p1 = points[1];
     var maxDistanceSquared = 0.0;

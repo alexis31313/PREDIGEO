@@ -60,7 +60,7 @@ void main() {
       );
 
       expect(tester.takeException(), isNull);
-      expect(find.text('Sin superficie 3D disponible para este track.'), findsOneWidget);
+      expect(find.textContaining('Sin superficie 3D disponible.'), findsOneWidget);
     });
 
     testWidgets('muestra un mensaje cuando la superficie es track', (tester) async {

@@ -32,6 +32,7 @@ class _TerrainReliefToggleViewState extends State<TerrainReliefToggleView> {
   bool _is3D = false;
   double _exaggeration = 2.0;
   bool _showWireframe = false;
+  bool _showContours = false;
 
   static const List<double> _exaggerationOptions = <double>[1.0, 2.0, 5.0, 10.0];
 
@@ -90,6 +91,19 @@ class _TerrainReliefToggleViewState extends State<TerrainReliefToggleView> {
               ),
             ],
           ),
+          const SizedBox(height: 2),
+          // Toggle contours.
+          Row(
+            children: [
+              Text('Curvas de nivel:', style: TextStyle(fontSize: 11, color: colors.onSurfaceVariant)),
+              const SizedBox(width: 8),
+              Switch(
+                value: _showContours,
+                onChanged: (v) => setState(() => _showContours = v),
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ],
+          ),
           const SizedBox(height: 4),
         ],
         Expanded(
@@ -98,6 +112,7 @@ class _TerrainReliefToggleViewState extends State<TerrainReliefToggleView> {
                   surface: _buildSurface(),
                   verticalExaggeration: _exaggeration,
                   showWireframe: _showWireframe,
+                  showContours: _showContours,
                 )
               : TerrainReliefView(
                   points: widget.points,

@@ -527,7 +527,7 @@ class _MeasureScreenState extends ConsumerState<MeasureScreen> {
             ),
             const SizedBox(height: 8),
             SizedBox(
-              height: 220,
+              height: 300,
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 280),
                 child: MeasurementMapSection(

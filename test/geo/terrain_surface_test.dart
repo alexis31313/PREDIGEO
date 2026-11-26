@@ -241,7 +241,7 @@ void main() {
 
       expect(surface.kind, TerrainSurfaceKind.unavailable);
       expect(surface.isAvailable, isFalse);
-      expect(surface.reason, contains('sin puntos válidos'));
+      expect(surface.reason, contains('puntos válidos'));
     });
 
     test('descarta puntos cuya altitud no es valida', () {
