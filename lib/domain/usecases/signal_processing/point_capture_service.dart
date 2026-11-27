@@ -16,6 +16,10 @@ class PointCaptureService {
   final WeightedAverager weightedAverager;
   final SimpleKalmanFilter2D? kalmanFilter;
 
+  /// Muestreador opcional de presión atmosférica (hPa). Se ejecuta en
+  /// paralelo con las lecturas GPS; devuelve `null` si no hay barómetro.
+  final Future<double?> Function()? pressureSampler;
+
   /// Crea un servicio de captura de puntos.
   /// [locationService] es el servicio de ubicación a utilizar.
   /// [outlierFilter] es el filtro de valores atípicos (por defecto OutlierFilter()).
@@ -26,6 +30,7 @@ class PointCaptureService {
     OutlierFilter? outlierFilter,
     WeightedAverager? weightedAverager,
     SimpleKalmanFilter2D? kalmanFilter,
+    this.pressureSampler,
   })  : outlierFilter = outlierFilter ?? OutlierFilter(),
         weightedAverager = weightedAverager ?? const WeightedAverager(),
         kalmanFilter = kalmanFilter;
@@ -45,6 +50,7 @@ class PointCaptureService {
     var totalReadings = 0;
     var lastAccuracy = 0.0;
     final stopwatch = Stopwatch()..start();
+    final pressureFuture = _startPressureSampling();
 
     while (validReadings.length < samples && stopwatch.elapsed < timeout) {
       try {
@@ -79,7 +85,19 @@ class PointCaptureService {
       );
     }
 
-    return _buildCapturedPoint(validReadings);
+    final point = _buildCapturedPoint(validReadings);
+    final pressure = await pressureFuture;
+    return pressure == null ? point : point.copyWith(pressureHpa: pressure);
+  }
+
+  Future<double?> _startPressureSampling() async {
+    final sampler = pressureSampler;
+    if (sampler == null) return null;
+    try {
+      return await sampler();
+    } catch (_) {
+      return null;
+    }
   }
 
   String _insufficientMessage(int valid, int total, double lastAccuracy) {

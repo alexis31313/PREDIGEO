@@ -213,7 +213,7 @@ class _MeasureScreenState extends ConsumerState<MeasureScreen> {
     try {
       await ref
           .read(measurementHistoryActionsProvider.notifier)
-          .save(measurement);
+          .save(measurement, interiorPoints: session.interiorPoints);
 
       _autoCaptureTimer?.cancel();
       if (mounted) {
@@ -527,7 +527,7 @@ class _MeasureScreenState extends ConsumerState<MeasureScreen> {
             ),
             const SizedBox(height: 8),
             SizedBox(
-              height: 300,
+              height: 400,
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 280),
                 child: MeasurementMapSection(
@@ -737,6 +737,16 @@ class _MeasureScreenState extends ConsumerState<MeasureScreen> {
                               '${(session.captureProgress * 100).round()}%'
                           : 'Muestrear interior (3D)',
                     ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${session.interiorPoints.length} puntos interiores · '
+                  'Altitud: ${session.usesBarometer ? 'barómetro + GPS' : 'GPS'}',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 8),

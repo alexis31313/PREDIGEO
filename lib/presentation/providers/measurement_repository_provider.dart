@@ -5,8 +5,10 @@ import 'package:flutter/foundation.dart' show immutable;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/datasources/database_helper.dart';
+import '../../data/datasources/interior_points_store.dart';
 import '../../data/repositories/sqlite_measurement_repository.dart';
 import '../../domain/entities/field_evaluation.dart';
+import '../../domain/entities/geo_point.dart';
 import '../../domain/entities/measurement.dart';
 import '../../domain/entities/measurement_enums.dart';
 import '../../domain/repositories/measurement_repository.dart';
@@ -25,6 +27,22 @@ final databaseHelperProvider = Provider<DatabaseHelper>(
 final measurementRepositoryProvider = Provider<MeasurementRepository>(
   (ref) => SqliteMeasurementRepository(ref.watch(databaseHelperProvider)),
 );
+
+/// Almacén de los puntos interiores (muestreo 3D) de cada medición.
+final interiorPointsStoreProvider = Provider<InteriorPointsStore>(
+  (ref) => InteriorPointsStore(),
+);
+
+/// Puntos interiores guardados de una medición. Si no se pueden leer, se
+/// devuelve una lista vacía (la vista 3D usa entonces solo el contorno).
+final interiorPointsProvider =
+    FutureProvider.family<List<GeoPoint>, int>((ref, measurementId) async {
+  try {
+    return await ref.watch(interiorPointsStoreProvider).load(measurementId);
+  } catch (_) {
+    return const <GeoPoint>[];
+  }
+});
 
 /// Historial completo, ordenado de más reciente a más antiguo.
 /// La cabecera de la medición se recarga cuando el historial cambia
@@ -173,9 +191,25 @@ class MeasurementHistoryNotifier extends Notifier<void> {
   MeasurementRepository get _repository =>
       ref.read(measurementRepositoryProvider);
 
-  Future<void> save(Measurement measurement) async {
-    await _repository.insertMeasurement(measurement);
+  /// Guarda una medición y, si los hay, sus puntos interiores (muestreo 3D).
+  /// Devuelve la medición persistida (con `id`).
+  Future<Measurement> save(
+    Measurement measurement, {
+    List<GeoPoint> interiorPoints = const <GeoPoint>[],
+  }) async {
+    final saved = await _repository.insertMeasurement(measurement);
+    final id = saved.id;
+    if (id != null && interiorPoints.isNotEmpty) {
+      try {
+        await ref.read(interiorPointsStoreProvider).save(id, interiorPoints);
+        ref.invalidate(interiorPointsProvider(id));
+      } catch (_) {
+        // Los puntos interiores son complementarios: un fallo aquí no debe
+        // impedir guardar la medición.
+      }
+    }
     _invalidateHistory();
+    return saved;
   }
 
   Future<void> edit(Measurement measurement) async {
@@ -185,12 +219,19 @@ class MeasurementHistoryNotifier extends Notifier<void> {
 
   Future<void> remove(int id) async {
     await _repository.delete(id);
+    try {
+      await ref.read(interiorPointsStoreProvider).delete(id);
+    } catch (_) {}
+    ref.invalidate(interiorPointsProvider(id));
     _invalidateHistory();
     ref.invalidate(measurementDetailProvider(id));
   }
 
   Future<void> removeAll() async {
     await _repository.deleteAll();
+    try {
+      await ref.read(interiorPointsStoreProvider).deleteAll();
+    } catch (_) {}
     _invalidateHistory();
   }
 
