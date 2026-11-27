@@ -35,8 +35,36 @@ class MeasurementMapSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isOnline = ref.watch(isOnlineProvider);
     final content = isOnline
-        ? mapBuilder?.call(points, closePolygon) ??
-            MeasurementMapView(points: points, closePolygon: closePolygon)
+        ? Stack(
+            children: [
+              Positioned.fill(
+                child: mapBuilder?.call(points, closePolygon) ??
+                    MeasurementMapView(
+                      points: points,
+                      closePolygon: closePolygon,
+                    ),
+              ),
+              Positioned(
+                left: 8,
+                bottom: 8,
+                child: FilledButton.tonalIcon(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      fullscreenDialog: true,
+                      builder: (_) => TerrainRelief3DScreen(
+                        points: points,
+                        interiorPoints: interiorPoints,
+                        closePolygon: closePolygon,
+                        maxAccuracy: maxAccuracy,
+                      ),
+                    ),
+                  ),
+                  icon: const Icon(Icons.threed_rotation, size: 18),
+                  label: const Text('Relieve 3D'),
+                ),
+              ),
+            ],
+          )
         : _OfflineRelief(
             points: points,
             interiorPoints: interiorPoints,

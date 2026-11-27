@@ -19,3 +19,23 @@ Color altitudeColor(
   }
   return Color.lerp(middle, high, (clamped - 0.5) * 2)!;
 }
+
+/// Paradas de la paleta hipsométrica fija usada por la vista 3D: azul
+/// (zonas bajas) → verde → ocre → marrón (zonas altas). No depende del tema
+/// para que los colores signifiquen siempre lo mismo.
+const List<Color> hypsometricStops = <Color>[
+  Color(0xFF3A78C9),
+  Color(0xFF3FA66B),
+  Color(0xFF9CC45A),
+  Color(0xFFD9B95B),
+  Color(0xFF8B5A2B),
+];
+
+/// Color hipsométrico para la posición normalizada [t] (0 = más bajo,
+/// 1 = más alto) dentro del rango de altitudes.
+Color hypsometricColor(double t) {
+  final clamped = t.isFinite ? t.clamp(0.0, 1.0) : 0.5;
+  final scaled = clamped * (hypsometricStops.length - 1);
+  final i = scaled.floor().clamp(0, hypsometricStops.length - 2);
+  return Color.lerp(hypsometricStops[i], hypsometricStops[i + 1], scaled - i)!;
+}

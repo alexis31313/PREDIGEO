@@ -4,9 +4,11 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/utils/formatters.dart';
 import '../../domain/entities/field_evaluation.dart';
+import '../../domain/entities/geo_point.dart';
 import '../../domain/entities/measurement.dart';
 import '../../domain/entities/measurement_enums.dart';
 import '../providers/measurement_repository_provider.dart';
+import '../widgets/measurement_map_view.dart';
 import '../widgets/terrain_relief_toggle_view.dart';
 
 /// Detalle de una medición guardada: cabecera, resultados, puntos y evaluaciones.
@@ -88,6 +90,9 @@ class _DetailContent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final evaluations = ref.watch(fieldEvaluationsProvider(measurement.id!));
+    final interiorPoints =
+        ref.watch(interiorPointsProvider(measurement.id!)).valueOrNull ??
+            const <GeoPoint>[];
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -111,8 +116,32 @@ class _DetailContent extends ConsumerWidget {
                     ),
                     const SizedBox(height: 8),
                     SizedBox(
-                      height: 260,
+                      height: 400,
                       child: TerrainReliefToggleView(
+                        points: measurement.points,
+                        interiorPoints: interiorPoints,
+                        closePolygon: measurement.isArea,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Mapa de ubicación de los puntos',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      height: 260,
+                      child: MeasurementMapView(
                         points: measurement.points,
                         closePolygon: measurement.isArea,
                       ),

@@ -12,6 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/geo_point.dart';
 import '../../domain/entities/measurement_enums.dart';
+import '../../domain/usecases/geo/altitude_fusion.dart';
 import '../../domain/usecases/geo/area_calculator.dart';
 import '../../domain/usecases/geo/distance_calculator.dart';
 import '../../domain/usecases/geo/elevation_stats.dart';
@@ -48,6 +49,19 @@ class MeasurementSessionState {
   /// Mensaje de error de la última operación (captura o guardado).
   final String? errorMessage;
 
+  /// Altitud GPS original de cada punto de [points] (antes de la fusión con
+  /// el barómetro), en el mismo orden.
+  final List<double> pointGpsAltitudes;
+
+  /// Presión (hPa) medida en cada punto de [points]; `null` sin barómetro.
+  final List<double?> pointPressures;
+
+  /// Altitud GPS original de cada punto de [interiorPoints].
+  final List<double> interiorGpsAltitudes;
+
+  /// Presión (hPa) medida en cada punto de [interiorPoints].
+  final List<double?> interiorPressures;
+
   const MeasurementSessionState({
     this.type = MeasurementType.area,
     this.points = const <GeoPoint>[],
@@ -58,7 +72,16 @@ class MeasurementSessionState {
     this.isCapturing = false,
     this.captureProgress = 0.0,
     this.errorMessage,
+    this.pointGpsAltitudes = const <double>[],
+    this.pointPressures = const <double?>[],
+    this.interiorGpsAltitudes = const <double>[],
+    this.interiorPressures = const <double?>[],
   });
+
+  /// `true` cuando la altitud de los puntos usa el barómetro (al menos dos
+  /// puntos con presión registrada).
+  bool get usesBarometer =>
+      [...pointPressures, ...interiorPressures].whereType<double>().length >= 2;
 
   /// Todos los puntos (contorno + interior) para la vista 3D.
   List<GeoPoint> get allPoints => [...points, ...interiorPoints];
@@ -117,6 +140,10 @@ class MeasurementSessionState {
     bool? isCapturing,
     double? captureProgress,
     String? errorMessage,
+    List<double>? pointGpsAltitudes,
+    List<double?>? pointPressures,
+    List<double>? interiorGpsAltitudes,
+    List<double?>? interiorPressures,
     bool clearCategory = false,
     bool clearError = false,
   }) {
@@ -130,6 +157,10 @@ class MeasurementSessionState {
       isCapturing: isCapturing ?? this.isCapturing,
       captureProgress: captureProgress ?? this.captureProgress,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      pointGpsAltitudes: pointGpsAltitudes ?? this.pointGpsAltitudes,
+      pointPressures: pointPressures ?? this.pointPressures,
+      interiorGpsAltitudes: interiorGpsAltitudes ?? this.interiorGpsAltitudes,
+      interiorPressures: interiorPressures ?? this.interiorPressures,
     );
   }
 }
@@ -173,26 +204,34 @@ class MeasurementSessionNotifier extends Notifier<MeasurementSessionState> {
   /// No afecta el cálculo del área ni el polígono.
   void addInteriorPoint(CapturedPoint captured) {
     final point = GeoPoint(
-      seq: state.points.length + state.interiorPoints.length,
+      seq: state.interiorPoints.length,
       latitude: captured.latitude,
       longitude: captured.longitude,
       altitude: captured.altitude,
       accuracy: captured.estimatedAccuracy,
       timestamp: captured.timestamp,
     );
-    state = state.copyWith(
-      interiorPoints: [...state.interiorPoints, point],
-      isCapturing: false,
-      captureProgress: 0.0,
-      clearError: true,
+    state = _fused(
+      state.copyWith(
+        interiorPoints: [...state.interiorPoints, point],
+        interiorGpsAltitudes: [...state.interiorGpsAltitudes, captured.altitude],
+        interiorPressures: [...state.interiorPressures, captured.pressureHpa],
+        isCapturing: false,
+        captureProgress: 0.0,
+        clearError: true,
+      ),
     );
   }
 
   /// Limpia los puntos interiores capturados.
   void clearInteriorPoints() {
-    state = state.copyWith(
-      interiorPoints: const <GeoPoint>[],
-      clearError: true,
+    state = _fused(
+      state.copyWith(
+        interiorPoints: const <GeoPoint>[],
+        interiorGpsAltitudes: const <double>[],
+        interiorPressures: const <double?>[],
+        clearError: true,
+      ),
     );
   }
 
@@ -206,11 +245,15 @@ class MeasurementSessionNotifier extends Notifier<MeasurementSessionState> {
       accuracy: captured.estimatedAccuracy,
       timestamp: captured.timestamp,
     );
-    state = state.copyWith(
-      points: [...state.points, point],
-      isCapturing: false,
-      captureProgress: 0.0,
-      clearError: true,
+    state = _fused(
+      state.copyWith(
+        points: [...state.points, point],
+        pointGpsAltitudes: [..._gpsAltitudes(state), captured.altitude],
+        pointPressures: [..._pressures(state), captured.pressureHpa],
+        isCapturing: false,
+        captureProgress: 0.0,
+        clearError: true,
+      ),
     );
   }
 
@@ -230,21 +273,63 @@ class MeasurementSessionNotifier extends Notifier<MeasurementSessionState> {
     final resequenced = <GeoPoint>[
       for (var i = 0; i < remaining.length; i++) remaining[i].copyWith(seq: i),
     ];
-    state = state.copyWith(points: resequenced, clearError: true);
+    final count = remaining.length;
+    state = _fused(
+      state.copyWith(
+        points: resequenced,
+        pointGpsAltitudes: _gpsAltitudes(state).sublist(0, count),
+        pointPressures: _pressures(state).sublist(0, count),
+        clearError: true,
+      ),
+    );
   }
 
   /// Descarta todos los puntos pero conserva el tipo y la categoría elegidos.
   void clearPoints() {
-    state = state.copyWith(
+    state = _fused(state.copyWith(
       points: const <GeoPoint>[],
+      pointGpsAltitudes: const <double>[],
+      pointPressures: const <double?>[],
       isCapturing: false,
       captureProgress: 0.0,
       clearError: true,
-    );
+    ));
   }
 
   /// Restablece la sesión por completo.
   void reset() => state = const MeasurementSessionState();
+
+  /// Altitudes GPS originales de los puntos del contorno. Si la lista
+  /// paralela no está sincronizada (estado construido externamente), se usa
+  /// la altitud actual de cada punto.
+  List<double> _gpsAltitudes(MeasurementSessionState s) =>
+      s.pointGpsAltitudes.length == s.points.length
+          ? s.pointGpsAltitudes
+          : <double>[for (final p in s.points) p.altitude];
+
+  List<double?> _pressures(MeasurementSessionState s) =>
+      s.pointPressures.length == s.points.length
+          ? s.pointPressures
+          : List<double?>.filled(s.points.length, null);
+
+  /// Recalcula la altitud de todos los puntos (contorno + interior) fusionando
+  /// GPS y barómetro. Sin barómetro las altitudes quedan iguales al GPS.
+  MeasurementSessionState _fused(MeasurementSessionState s) {
+    final gps = <double>[..._gpsAltitudes(s), ...s.interiorGpsAltitudes];
+    final pressures = <double?>[..._pressures(s), ...s.interiorPressures];
+    if (gps.length != s.points.length + s.interiorPoints.length) return s;
+    final fused = fuseAltitudes(gps, pressures);
+    final n = s.points.length;
+    return s.copyWith(
+      points: <GeoPoint>[
+        for (var i = 0; i < n; i++) s.points[i].copyWith(altitude: fused[i]),
+      ],
+      interiorPoints: <GeoPoint>[
+        for (var i = 0; i < s.interiorPoints.length; i++)
+          s.interiorPoints[i].copyWith(altitude: fused[n + i]),
+      ],
+    );
+  }
 }
 
 final measurementSessionProvider =

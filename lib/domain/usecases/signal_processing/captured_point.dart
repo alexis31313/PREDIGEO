@@ -9,6 +9,10 @@ class CapturedPoint {
   final int sampleCount;
   final DateTime timestamp;
 
+  /// Presión atmosférica media (hPa) durante la captura, si el dispositivo
+  /// tiene barómetro. Se usa para la altura relativa entre puntos.
+  final double? pressureHpa;
+
   const CapturedPoint({
     required this.latitude,
     required this.longitude,
@@ -16,6 +20,7 @@ class CapturedPoint {
     required this.estimatedAccuracy,
     required this.sampleCount,
     required this.timestamp,
+    this.pressureHpa,
   });
 
   /// Crea una copia de este punto con los campos especificados reemplazados.
@@ -26,6 +31,7 @@ class CapturedPoint {
     double? estimatedAccuracy,
     int? sampleCount,
     DateTime? timestamp,
+    double? pressureHpa,
   }) {
     return CapturedPoint(
       latitude: latitude ?? this.latitude,
@@ -34,6 +40,7 @@ class CapturedPoint {
       estimatedAccuracy: estimatedAccuracy ?? this.estimatedAccuracy,
       sampleCount: sampleCount ?? this.sampleCount,
       timestamp: timestamp ?? this.timestamp,
+      pressureHpa: pressureHpa ?? this.pressureHpa,
     );
   }
 
@@ -41,7 +48,7 @@ class CapturedPoint {
   String toString() {
     return 'CapturedPoint(lat: $latitude, lng: $longitude, alt: $altitude, '
         'accuracy: $estimatedAccuracy, samples: $sampleCount, '
-        'timestamp: $timestamp)';
+        'timestamp: $timestamp, pressure: $pressureHpa)';
   }
 
   @override
@@ -53,7 +60,8 @@ class CapturedPoint {
         other.altitude == altitude &&
         other.estimatedAccuracy == estimatedAccuracy &&
         other.sampleCount == sampleCount &&
-        other.timestamp == timestamp;
+        other.timestamp == timestamp &&
+        other.pressureHpa == pressureHpa;
   }
 
   @override
@@ -65,6 +73,7 @@ class CapturedPoint {
       estimatedAccuracy,
       sampleCount,
       timestamp,
+      pressureHpa,
     );
   }
 }
